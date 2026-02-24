@@ -266,7 +266,7 @@ const MODELS_MASTER = {
     // --- DeepSeek Models (V3.2, api.deepseek.com via AI Gateway) ---
     // Pricing: $0.28/1M input (cache miss), $0.028 (cache hit), $0.42/1M output
     DEEPSEEK_FAST: {
-        id: 'deepseek/deepseek-chat',
+        id: 'deepseek/deepseek-chat[fast]',
         config: {
             name: 'DeepSeek V3.2 Fast',
             size: ModelSize.LITE,
@@ -278,7 +278,7 @@ const MODELS_MASTER = {
         }
     },
     DEEPSEEK_THINKING: {
-        id: 'deepseek/deepseek-chat',
+        id: 'deepseek/deepseek-chat[thinking]',
         config: {
             name: 'DeepSeek V3.2 Thinking',
             size: ModelSize.REGULAR,
@@ -302,7 +302,7 @@ const MODELS_MASTER = {
         }
     },
     DEEPSEEK_REASONER_MAX: {
-        id: 'deepseek/deepseek-reasoner',
+        id: 'deepseek/deepseek-reasoner[max]',
         config: {
             name: 'DeepSeek Reasoner Max',
             size: ModelSize.LARGE,
