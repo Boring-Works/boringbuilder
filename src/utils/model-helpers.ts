@@ -18,12 +18,21 @@ export function getModelDisplayName(modelValue?: string): string {
 export function getProviderInfo(modelValue?: string): ProviderInfo {
 	if (!modelValue) return { name: 'Default', color: 'bg-bg-3 text-text-tertiary' };
 
-	// Check specific prefixes first to avoid incorrect matches
+	// Check multi-segment prefixes first to avoid incorrect substring matches
+	if (modelValue.startsWith('openrouter/')) {
+		return { name: 'OpenRouter', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' };
+	}
+	if (modelValue.startsWith('google-vertex-ai/')) {
+		return { name: 'Vertex AI', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-400' };
+	}
 	if (modelValue.includes('cerebras/')) {
 		return { name: 'Cerebras', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' };
 	}
-	if (modelValue.includes('[openrouter]')) {
-		return { name: 'OpenRouter', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' };
+	if (modelValue.startsWith('deepseek/')) {
+		return { name: 'DeepSeek', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400' };
+	}
+	if (modelValue.startsWith('grok/')) {
+		return { name: 'xAI', color: 'bg-slate-100 text-slate-800 dark:bg-slate-900/20 dark:text-slate-400' };
 	}
 	if (modelValue.includes('openai/') || modelValue.includes('gpt') || modelValue.includes('o3') || modelValue.includes('o4')) {
 		return { name: 'OpenAI', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' };
