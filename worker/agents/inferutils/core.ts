@@ -707,21 +707,29 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         } : {};
         let response: OpenAI.ChatCompletion | OpenAI.ChatCompletionChunk | Stream<OpenAI.ChatCompletionChunk>;
         try {
-            // Providers that use max_tokens instead of max_completion_tokens
-            const usesMaxTokens = ['deepseek', 'grok'].includes(modelConfig.provider);
+            // Provider-specific token parameter handling
+            const isDeepSeek = modelConfig.provider === 'deepseek';
+            const isGrok = modelConfig.provider === 'grok';
             let tokenLimit: number;
-            if (usesMaxTokens) {
-                if (deepSeekThinking) {
-                    tokenLimit = maxTokens || 65536; // DeepSeek thinking/reasoner: 64K max
-                } else {
-                    tokenLimit = Math.min(maxTokens || 8192, 8192); // DeepSeek non-thinking: 8K max
-                }
+            let tokenParam: { max_tokens: number } | { max_completion_tokens: number };
+
+            if (isDeepSeek) {
+                // DeepSeek uses max_tokens; thinking/reasoner: 64K, non-thinking: 8K
+                tokenLimit = deepSeekThinking
+                    ? (maxTokens || 65536)
+                    : Math.min(maxTokens || 8192, 8192);
+                tokenParam = { max_tokens: tokenLimit };
+            } else if (isGrok) {
+                // Grok: reasoning models use max_completion_tokens, non-reasoning use max_tokens
+                tokenLimit = maxTokens || 32000;
+                const isGrokNonReasoning = modelName.includes('non-reasoning');
+                tokenParam = isGrokNonReasoning
+                    ? { max_tokens: tokenLimit }
+                    : { max_completion_tokens: tokenLimit };
             } else {
                 tokenLimit = maxTokens || 150000;
+                tokenParam = { max_completion_tokens: tokenLimit };
             }
-            const tokenParam = usesMaxTokens
-                ? { max_tokens: tokenLimit }
-                : { max_completion_tokens: tokenLimit };
 
             // Call OpenAI API with proper structured output format
             response = await client.chat.completions.create({
