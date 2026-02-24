@@ -18,6 +18,7 @@ export interface AIModelConfig {
     creditCost: number;
     contextSize: number;
     nonReasoning?: boolean;
+    enableThinking?: boolean;
     directOverride?: boolean;
 }
 
@@ -262,27 +263,54 @@ const MODELS_MASTER = {
     //     }
     // },
 
-    // --- DeepSeek Models (direct API: api.deepseek.com) ---
-    DEEPSEEK_CHAT: {
+    // --- DeepSeek Models (V3.2, api.deepseek.com via AI Gateway) ---
+    // Pricing: $0.28/1M input (cache miss), $0.028 (cache hit), $0.42/1M output
+    DEEPSEEK_FAST: {
         id: 'deepseek/deepseek-chat',
         config: {
-            name: 'DeepSeek V3.2',
+            name: 'DeepSeek V3.2 Fast',
+            size: ModelSize.LITE,
+            provider: 'deepseek',
+            creditCost: 1.1,
+            contextSize: 131072, // 128K
+            nonReasoning: true, // no reasoning_effort param
+            // No thinking — 8K max output, fastest responses
+        }
+    },
+    DEEPSEEK_THINKING: {
+        id: 'deepseek/deepseek-chat',
+        config: {
+            name: 'DeepSeek V3.2 Thinking',
             size: ModelSize.REGULAR,
             provider: 'deepseek',
-            creditCost: 1.1, // $0.27/1M input
-            contextSize: 131072, // 128K Context
+            creditCost: 1.5,
+            contextSize: 131072,
             nonReasoning: true,
+            enableThinking: true, // thinking: {type: "enabled"} — 64K max output
         }
     },
     DEEPSEEK_REASONER: {
         id: 'deepseek/deepseek-reasoner',
         config: {
-            name: 'DeepSeek V3.2 Reasoner',
+            name: 'DeepSeek Reasoner',
             size: ModelSize.REGULAR,
             provider: 'deepseek',
-            creditCost: 2.2, // $0.55/1M input (thinking tokens)
-            contextSize: 131072, // 128K Context
-            nonReasoning: true, // DeepSeek uses thinking param, not reasoning_effort
+            creditCost: 2.2,
+            contextSize: 131072,
+            nonReasoning: true,
+            enableThinking: true, // thinking on by default — 64K max output
+        }
+    },
+    DEEPSEEK_REASONER_MAX: {
+        id: 'deepseek/deepseek-reasoner',
+        config: {
+            name: 'DeepSeek Reasoner Max',
+            size: ModelSize.LARGE,
+            provider: 'deepseek',
+            creditCost: 2.5,
+            contextSize: 131072,
+            nonReasoning: true,
+            enableThinking: true, // thinking on, 64K max output, full power
         }
     },
 

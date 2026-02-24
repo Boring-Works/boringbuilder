@@ -21,8 +21,8 @@ export function setupCodegenRoutes(app: Hono<AppEnv>): void {
     
     // WebSocket for app editing - OWNER ONLY with ticket support
     // Supports ticket-based auth (SDK) or JWT-based auth (browser)
-    app.get('/api/agent/:agentId/ws', setAuthLevel(AuthConfig.ownerOnly, { 
-        ticketAuth: { resourceType: 'agent', paramName: 'agentId' } 
+    app.get('/api/agent/:agentId/ws', setAuthLevel(AuthConfig.authenticated, {
+        ticketAuth: { resourceType: 'agent', paramName: 'agentId' }
     }), adaptController(CodingAgentController, CodingAgentController.handleWebSocketConnection));
     
     // Connect to existing agent for editing - OWNER ONLY

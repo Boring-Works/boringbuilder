@@ -594,7 +594,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             schema && schemaName && !format && supportsStructuredOutput
                 ? { response_format: zodResponseFormat(schema, schemaName) }
                 : {};
-        const isDeepSeekReasoner = modelConfig.provider === 'deepseek' && modelName.includes('reasoner');
+        const deepSeekThinking = modelConfig.provider === 'deepseek' && modelConfig.enableThinking;
         const extraBody = modelName.includes('claude')? {
                     extra_body: {
                         thinking: {
@@ -603,7 +603,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                         },
                     },
                 }
-            : isDeepSeekReasoner ? {
+            : deepSeekThinking ? {
                     extra_body: {
                         thinking: { type: 'enabled' },
                     },
@@ -711,10 +711,10 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             const usesMaxTokens = ['deepseek', 'grok'].includes(modelConfig.provider);
             let tokenLimit: number;
             if (usesMaxTokens) {
-                if (isDeepSeekReasoner) {
-                    tokenLimit = maxTokens || 32768; // DeepSeek reasoner: 32K default, 64K max
+                if (deepSeekThinking) {
+                    tokenLimit = maxTokens || 65536; // DeepSeek thinking/reasoner: 64K max
                 } else {
-                    tokenLimit = Math.min(maxTokens || 8192, 8192); // DeepSeek chat: 8K max
+                    tokenLimit = Math.min(maxTokens || 8192, 8192); // DeepSeek non-thinking: 8K max
                 }
             } else {
                 tokenLimit = maxTokens || 150000;
