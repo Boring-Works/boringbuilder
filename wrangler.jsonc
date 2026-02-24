@@ -161,6 +161,7 @@
             "version": "1.0.0"
         },
         "CUSTOM_DOMAIN": "build.getboring.io",
+        "CUSTOM_PREVIEW_DOMAIN": "getboring.io",
         "MAX_SANDBOX_INSTANCES": "10",
         "SANDBOX_INSTANCE_TYPE": "standard"
     },
