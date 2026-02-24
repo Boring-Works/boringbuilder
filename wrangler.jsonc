@@ -51,7 +51,7 @@
     "dispatch_namespaces": [
         {
             "binding": "DISPATCHER",
-            "namespace": "vibesdk-default-namespace",
+            "namespace": "boringbuilder-apps",
             "remote": true
         }
     ],
@@ -145,7 +145,7 @@
         "ALLOWED_EMAIL": "codyboring@me.com",
         "DISPATCH_NAMESPACE": "boringbuilder-apps",
         "ENABLE_READ_REPLICAS": "false",
-        "CLOUDFLARE_AI_GATEWAY": "94bdc287cd4e0622b68f9e18e406ae66",
+        "CLOUDFLARE_AI_GATEWAY": "boringbuilder_ai_gateway",
         "PLATFORM_CAPABILITIES": {
             "features": {
                 "app": {
