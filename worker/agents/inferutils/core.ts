@@ -956,6 +956,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                         abortSignal,
                         onAssistantMessage,
                         completionConfig,
+                        runtimeOverrides,
                     }, newToolCallContext);
                     return output;
                 } else {
@@ -974,6 +975,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                         abortSignal,
                         onAssistantMessage,
                         completionConfig,
+                        runtimeOverrides,
                     }, newToolCallContext);
                     return output;
                 }
