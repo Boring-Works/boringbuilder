@@ -12,7 +12,8 @@ declare namespace Cloudflare {
 		DISPATCH_NAMESPACE: "boringbuilder-apps";
 		ENABLE_READ_REPLICAS: string;
 		CLOUDFLARE_AI_GATEWAY: "boringbuilder_gateway";
-		PLATFORM_CAPABILITIES: {"features":{"app":{"enabled":true},"presentation":{"enabled":false},"general":{"enabled":false}},"version":"1.0.0"};
+		PLATFORM_MODEL_PROVIDERS: "google-ai-studio,anthropic,deepseek,openrouter,grok,openai";
+		PLATFORM_CAPABILITIES: {"features":{"app":{"enabled":true},"presentation":{"enabled":true},"general":{"enabled":false}},"version":"1.0.0"};
 		CUSTOM_DOMAIN: "build.getboring.io";
 		CUSTOM_PREVIEW_DOMAIN: "getboring.io";
 		MAX_SANDBOX_INSTANCES: "10";
@@ -23,9 +24,9 @@ declare namespace Cloudflare {
 		GOOGLE_AI_STUDIO_API_KEY: string;
 		OPENROUTER_API_KEY: string;
 		CEREBRAS_API_KEY: string;
+		DEEPSEEK_API_KEY: string;
 		GROQ_API_KEY: string;
 		GOOGLE_VERTEX_AI_API_KEY: string;
-		PLATFORM_MODEL_PROVIDERS: string;
 		SANDBOX_SERVICE_API_KEY: string;
 		SANDBOX_SERVICE_TYPE: string;
 		SANDBOX_SERVICE_URL: string;
@@ -70,5 +71,5 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "TEMPLATES_REPOSITORY" | "ALLOWED_EMAIL" | "DISPATCH_NAMESPACE" | "ENABLE_READ_REPLICAS" | "CLOUDFLARE_AI_GATEWAY" | "PLATFORM_CAPABILITIES" | "CUSTOM_DOMAIN" | "CUSTOM_PREVIEW_DOMAIN" | "MAX_SANDBOX_INSTANCES" | "SANDBOX_INSTANCE_TYPE" | "WORKERS_DEV_HOSTNAME">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "TEMPLATES_REPOSITORY" | "ALLOWED_EMAIL" | "DISPATCH_NAMESPACE" | "ENABLE_READ_REPLICAS" | "CLOUDFLARE_AI_GATEWAY" | "PLATFORM_MODEL_PROVIDERS" | "PLATFORM_CAPABILITIES" | "CUSTOM_DOMAIN" | "CUSTOM_PREVIEW_DOMAIN" | "MAX_SANDBOX_INSTANCES" | "SANDBOX_INSTANCE_TYPE" | "WORKERS_DEV_HOSTNAME">> {}
 }

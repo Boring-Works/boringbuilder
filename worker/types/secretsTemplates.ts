@@ -104,6 +104,34 @@ export function getTemplatesData(): SecretTemplate[] {
 
 		// BYOK (Bring Your Own Key) AI Providers - Lenient validation for compatibility
 		{
+			id: 'DEEPSEEK_API_KEY_BYOK',
+			displayName: 'DeepSeek (BYOK)',
+			envVarName: 'DEEPSEEK_API_KEY_BYOK',
+			provider: 'deepseek',
+			icon: '🔮',
+			description:
+				'Use your DeepSeek API key for DeepSeek V3.2 and Reasoner models',
+			instructions: 'Go to DeepSeek Platform → API Keys → Create new key',
+			placeholder: 'sk-...',
+			validation: '^sk-.{10,}$',
+			required: false,
+			category: 'byok',
+		},
+		{
+			id: 'OPENROUTER_API_KEY_BYOK',
+			displayName: 'OpenRouter (BYOK)',
+			envVarName: 'OPENROUTER_API_KEY_BYOK',
+			provider: 'openrouter',
+			icon: '🔀',
+			description:
+				'Use your OpenRouter API key for access to 400+ models from all providers',
+			instructions: 'Go to OpenRouter → Account → Keys → Create new key',
+			placeholder: 'sk-or-...',
+			validation: '^sk-or-.{10,}$',
+			required: false,
+			category: 'byok',
+		},
+		{
 			id: 'OPENAI_API_KEY_BYOK',
 			displayName: 'OpenAI (BYOK)',
 			envVarName: 'OPENAI_API_KEY_BYOK',

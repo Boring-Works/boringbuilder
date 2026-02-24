@@ -51,8 +51,10 @@ export function getPlatformEnabledProviders(env: Env): string[] {
 		'anthropic',
 		'openai',
 		'google-ai-studio',
+		'deepseek',
+		'openrouter',
 		'cerebras',
-		'groq',
+		'grok',
 	];
 
 	for (const provider of providerList) {

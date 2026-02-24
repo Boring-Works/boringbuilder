@@ -1,11 +1,9 @@
-import { 
-    AgentActionKey, 
-    AgentConfig, 
-    AgentConstraintConfig, 
+import {
+    AgentActionKey,
+    AgentConfig,
+    AgentConstraintConfig,
     AIModels,
     AllModels,
-    LiteModels,
-    RegularModels,
 } from "./config.types";
 import { env } from 'cloudflare:workers';
 
@@ -188,11 +186,15 @@ export const AGENT_CONFIG: AgentConfig = env.PLATFORM_MODEL_PROVIDERS
 
 export const AGENT_CONSTRAINTS: Map<AgentActionKey, AgentConstraintConfig> = new Map([
 	['fastCodeFixer', {
-		allowedModels: new Set([AIModels.DISABLED]),
+		allowedModels: new Set(AllModels),
 		enabled: true,
 	}],
 	['realtimeCodeFixer', {
-		allowedModels: new Set([AIModels.DISABLED]),
+		allowedModels: new Set(AllModels),
+		enabled: true,
+	}],
+	['screenshotAnalysis', {
+		allowedModels: new Set(AllModels),
 		enabled: true,
 	}],
 	['fileRegeneration', {
@@ -204,15 +206,15 @@ export const AGENT_CONSTRAINTS: Map<AgentActionKey, AgentConstraintConfig> = new
 		enabled: true,
 	}],
 	['projectSetup', {
-		allowedModels: new Set([...RegularModels, AIModels.GEMINI_2_5_PRO]),
+		allowedModels: new Set(AllModels),
 		enabled: true,
 	}],
 	['conversationalResponse', {
-		allowedModels: new Set(RegularModels),
+		allowedModels: new Set(AllModels),
 		enabled: true,
 	}],
 	['templateSelection', {
-		allowedModels: new Set(LiteModels),
+		allowedModels: new Set(AllModels),
 		enabled: true,
 	}],
 ]);

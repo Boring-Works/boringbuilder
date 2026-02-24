@@ -47,6 +47,11 @@ export function getAllowedOrigins(env: Env): string[] {
         origins.push(`https://${env.CUSTOM_DOMAIN}`);
     }
 
+    // Preview domain for user-generated apps (*.getboring.io)
+    if (env.CUSTOM_PREVIEW_DOMAIN) {
+        origins.push(`https://${env.CUSTOM_PREVIEW_DOMAIN}`);
+    }
+
     // Workers.dev origin when enabled
     if (env.WORKERS_DEV_HOSTNAME) {
         origins.push(`https://${env.WORKERS_DEV_HOSTNAME}`);
@@ -66,11 +71,25 @@ export function getAllowedOrigins(env: Env): string[] {
 }
 
 export function isOriginAllowed(env: Env, origin: string): boolean {
-    const allowedOrigins = getAllowedOrigins(env);
     if (!origin) return false;
 
-    // Check against allowed origins
-    return allowedOrigins.includes(origin);
+    const allowedOrigins = getAllowedOrigins(env);
+
+    // Exact match for known origins
+    if (allowedOrigins.includes(origin)) return true;
+
+    // Subdomain match for user-generated app previews (*.getboring.io)
+    if (env.CUSTOM_PREVIEW_DOMAIN) {
+        const suffix = `.${env.CUSTOM_PREVIEW_DOMAIN}`;
+        try {
+            const { hostname } = new URL(origin);
+            if (hostname.endsWith(suffix)) return true;
+        } catch {
+            return false;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -79,7 +98,10 @@ export function isOriginAllowed(env: Env, origin: string): boolean {
  */
 export function getCORSConfig(env: Env): CORSConfig {
     return {
-        origin: getAllowedOrigins(env),
+        origin: (origin: string) => {
+            if (!origin) return null; // Same-origin request, no CORS header needed
+            return isOriginAllowed(env, origin) ? origin : null;
+        },
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         allowHeaders: [
             'Content-Type',

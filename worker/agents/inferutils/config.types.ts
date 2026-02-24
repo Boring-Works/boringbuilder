@@ -262,6 +262,92 @@ const MODELS_MASTER = {
     //     }
     // },
 
+    // --- DeepSeek Models (direct API: api.deepseek.com) ---
+    DEEPSEEK_CHAT: {
+        id: 'deepseek/deepseek-chat',
+        config: {
+            name: 'DeepSeek V3.2',
+            size: ModelSize.REGULAR,
+            provider: 'deepseek',
+            creditCost: 1.1, // $0.27/1M input
+            contextSize: 131072, // 128K Context
+            nonReasoning: true,
+        }
+    },
+    DEEPSEEK_REASONER: {
+        id: 'deepseek/deepseek-reasoner',
+        config: {
+            name: 'DeepSeek V3.2 Reasoner',
+            size: ModelSize.REGULAR,
+            provider: 'deepseek',
+            creditCost: 2.2, // $0.55/1M input (thinking tokens)
+            contextSize: 131072, // 128K Context
+            nonReasoning: true, // DeepSeek uses thinking param, not reasoning_effort
+        }
+    },
+
+    // --- OpenRouter Models (routed through AI Gateway) ---
+    OR_DEEPSEEK_V3_2: {
+        id: 'openrouter/deepseek/deepseek-v3.2',
+        config: {
+            name: 'DeepSeek V3.2 (OpenRouter)',
+            size: ModelSize.REGULAR,
+            provider: 'openrouter',
+            creditCost: 1.1,
+            contextSize: 131072,
+        }
+    },
+    OR_DEEPSEEK_R1: {
+        id: 'openrouter/deepseek/deepseek-r1',
+        config: {
+            name: 'DeepSeek R1 (OpenRouter)',
+            size: ModelSize.LARGE,
+            provider: 'openrouter',
+            creditCost: 2.2,
+            contextSize: 131072,
+        }
+    },
+    OR_CLAUDE_SONNET_4_6: {
+        id: 'openrouter/anthropic/claude-sonnet-4.6',
+        config: {
+            name: 'Claude Sonnet 4.6 (OpenRouter)',
+            size: ModelSize.LARGE,
+            provider: 'openrouter',
+            creditCost: 12,
+            contextSize: 200000,
+        }
+    },
+    OR_CLAUDE_OPUS_4_6: {
+        id: 'openrouter/anthropic/claude-opus-4.6',
+        config: {
+            name: 'Claude Opus 4.6 (OpenRouter)',
+            size: ModelSize.LARGE,
+            provider: 'openrouter',
+            creditCost: 20,
+            contextSize: 200000,
+        }
+    },
+    OR_GEMINI_2_5_PRO: {
+        id: 'openrouter/google/gemini-2.5-pro',
+        config: {
+            name: 'Gemini 2.5 Pro (OpenRouter)',
+            size: ModelSize.LARGE,
+            provider: 'openrouter',
+            creditCost: 5,
+            contextSize: 1048576,
+        }
+    },
+    OR_GEMINI_3_PRO_PREVIEW: {
+        id: 'openrouter/google/gemini-3-pro-preview',
+        config: {
+            name: 'Gemini 3 Pro Preview (OpenRouter)',
+            size: ModelSize.LARGE,
+            provider: 'openrouter',
+            creditCost: 8,
+            contextSize: 1048576,
+        }
+    },
+
     // --- Grok Models ---
     GROK_CODE_FAST_1: {
         id: 'grok/grok-code-fast-1',

@@ -188,12 +188,11 @@ const worker = {
 
                 logger.info(`Origin: ${origin}, Preview Domain: ${previewDomain}`);
 
-                return proxyToAiGateway(request, env, ctx);
-				// if (origin && origin.endsWith(`.${previewDomain}`)) {
-                //     return proxyToAiGateway(request, env, ctx);
-                // }
-                // logger.warn(`Access denied. Invalid origin: ${origin}, preview domain: ${previewDomain}`);
-                // return new Response('Access denied. Invalid origin.', { status: 403 });
+                if (origin && isOriginAllowed(env, origin)) {
+                    return proxyToAiGateway(request, env, ctx);
+                }
+                logger.warn(`AI proxy access denied. Invalid origin: ${origin}`);
+                return new Response('Access denied. Invalid origin.', { status: 403 });
 			}
 
 			// Handle all API requests with the main Hono application.

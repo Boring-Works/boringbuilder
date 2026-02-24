@@ -28,8 +28,14 @@ export function createApp(env: Env): Hono<AppEnv> {
         return secureHeaders(getSecureHeadersConfig(env))(c, next);
     });
     
-    // CORS configuration
-    app.use('/api/*', cors(getCORSConfig(env)));
+    // CORS configuration (skip for WebSocket upgrades)
+    app.use('/api/*', async (c, next) => {
+        const upgradeHeader = c.req.header('upgrade');
+        if (upgradeHeader?.toLowerCase() === 'websocket') {
+            return next();
+        }
+        return cors(getCORSConfig(env))(c, next);
+    });
     
     // CSRF protection using double-submit cookie pattern with proper GET handling
     app.use('*', async (c, next) => {

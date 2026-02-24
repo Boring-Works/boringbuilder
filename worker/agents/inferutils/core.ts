@@ -277,58 +277,63 @@ async function getApiKey(
 
 export async function getConfigurationForModel(
     modelConfig: AIModelConfig,
-    env: Env, 
+    env: Env,
     userId: string,
     runtimeOverrides?: InferenceRuntimeOverrides,
 ): Promise<{
     baseURL: string,
     apiKey: string,
     defaultHeaders?: Record<string, string>,
+    useProviderEndpoint: boolean,
 }> {
-    let providerForcedOverride: AIGatewayProviders | undefined;
+    // Direct API override: bypass gateway entirely, call provider API directly
     if (modelConfig.directOverride) {
         switch(modelConfig.provider) {
             case 'openrouter':
-                return {
-                    baseURL: 'https://openrouter.ai/api/v1',
-                    apiKey: env.OPENROUTER_API_KEY,
-                };
+                return { baseURL: 'https://openrouter.ai/api/v1', apiKey: env.OPENROUTER_API_KEY, useProviderEndpoint: true };
+            case 'deepseek':
+                return { baseURL: 'https://api.deepseek.com/v1', apiKey: env.DEEPSEEK_API_KEY, useProviderEndpoint: true };
             case 'google-ai-studio':
-                return {
-                    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-                    apiKey: env.GOOGLE_AI_STUDIO_API_KEY,
-                };
+                return { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKey: env.GOOGLE_AI_STUDIO_API_KEY, useProviderEndpoint: true };
             case 'anthropic':
-                return {
-                    baseURL: 'https://api.anthropic.com/v1/',
-                    apiKey: env.ANTHROPIC_API_KEY,
-                };
+                return { baseURL: 'https://api.anthropic.com/v1/', apiKey: env.ANTHROPIC_API_KEY, useProviderEndpoint: true };
             default:
-                providerForcedOverride = modelConfig.provider as AIGatewayProviders;
                 break;
         }
     }
 
     const gatewayOverride = runtimeOverrides?.aiGatewayOverride;
     const isUsingCustomGateway = !!gatewayOverride?.baseUrl;
-    const baseURL = await buildGatewayUrl(env, providerForcedOverride, gatewayOverride);
 
     const gatewayToken = isUsingCustomGateway
         ? gatewayOverride?.token
-        : (gatewayOverride?.token ?? env.CLOUDFLARE_AI_GATEWAY_TOKEN);  // Platform gateway
+        : (gatewayOverride?.token ?? env.CLOUDFLARE_AI_GATEWAY_TOKEN);
 
-    // Try to find API key of type <PROVIDER>_API_KEY else default to gateway token
+    // Resolve API key: provider-specific secret, runtime override, or gateway token fallback
     const apiKey = await getApiKey(modelConfig.provider, env, userId, runtimeOverrides);
 
-    // AI Gateway wholesaling: when using BYOK provider key + platform gateway token
-    const defaultHeaders = gatewayToken && apiKey !== gatewayToken ? {
+    // Determine gateway endpoint strategy:
+    // - Provider has own API key (apiKey != gatewayToken): use /compat with wholesaling
+    //   The provider key goes in Authorization, gateway token in cf-aig-authorization
+    // - Provider has NO own API key (apiKey == gatewayToken): use provider-specific endpoint
+    //   e.g. /deepseek/, /openrouter/, /grok/ — gateway injects stored credentials from dashboard
+    let providerForcedOverride: AIGatewayProviders | undefined;
+    const hasOwnProviderKey = gatewayToken && apiKey !== gatewayToken;
+    const useProviderEndpoint = !hasOwnProviderKey && modelConfig.provider !== 'None';
+
+    if (useProviderEndpoint) {
+        providerForcedOverride = modelConfig.provider as AIGatewayProviders;
+    }
+
+    const baseURL = await buildGatewayUrl(env, providerForcedOverride, gatewayOverride);
+
+    // AI Gateway wholesaling: provider key in Authorization + gateway token in cf-aig-authorization
+    // Only needed when using /compat with a real provider key (not when using provider-specific endpoint)
+    const defaultHeaders = hasOwnProviderKey ? {
         'cf-aig-authorization': `Bearer ${gatewayToken}`,
     } : undefined;
-    return {
-        baseURL,
-        apiKey,
-        defaultHeaders
-    };
+
+    return { baseURL, apiKey, defaultHeaders, useProviderEndpoint };
 }
 
 type InferArgsBase = {
@@ -557,28 +562,50 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         await RateLimitService.enforceLLMCallsRateLimit(env, userConfig.security.rateLimit, metadata.userId, modelName)
         const modelConfig = AI_MODEL_CONFIG[modelName as AIModels];
 
-        const { apiKey, baseURL, defaultHeaders } = await getConfigurationForModel(
+        const { apiKey, baseURL, defaultHeaders, useProviderEndpoint } = await getConfigurationForModel(
             modelConfig,
             env,
             metadata.userId,
             runtimeOverrides,
         );
-        console.log(`baseUrl: ${baseURL}, modelName: ${modelName}`);
+        console.log(`baseUrl: ${baseURL}, modelName: ${modelName}, useProviderEndpoint: ${useProviderEndpoint}`);
 
         // Remove [*.] from model name
         modelName = modelName.replace(/\[.*?\]/, '');
 
+        // Strip the provider prefix from the model name when using a provider-specific endpoint.
+        // Provider-specific endpoints (direct API or gateway /<provider>/) expect the native model name:
+        //   deepseek/deepseek-chat → deepseek-chat (for /deepseek/ endpoint)
+        //   openrouter/deepseek/deepseek-v3.2 → deepseek/deepseek-v3.2 (for /openrouter/ endpoint)
+        //   grok/grok-4-fast → grok-4-fast (for /grok/ endpoint)
+        // The /compat/ endpoint needs the full prefix to determine the provider, so we leave it intact.
+        if (useProviderEndpoint && modelConfig?.provider) {
+            const prefix = `${modelConfig.provider}/`;
+            if (modelName.startsWith(prefix)) {
+                modelName = modelName.slice(prefix.length);
+            }
+        }
+
         const client = new OpenAI({ apiKey, baseURL: baseURL, defaultHeaders });
+
+        // Providers that don't support OpenAI's structured output (zodResponseFormat)
+        const supportsStructuredOutput = !['deepseek', 'grok'].includes(modelConfig.provider);
         const schemaObj =
-            schema && schemaName && !format
+            schema && schemaName && !format && supportsStructuredOutput
                 ? { response_format: zodResponseFormat(schema, schemaName) }
                 : {};
+        const isDeepSeekReasoner = modelConfig.provider === 'deepseek' && modelName.includes('reasoner');
         const extraBody = modelName.includes('claude')? {
                     extra_body: {
                         thinking: {
                             type: 'enabled',
                             budget_tokens: claude_thinking_budget_tokens[reasoning_effort ?? 'medium'],
                         },
+                    },
+                }
+            : isDeepSeekReasoner ? {
+                    extra_body: {
+                        thinking: { type: 'enabled' },
                     },
                 }
             : {};
@@ -680,6 +707,22 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         } : {};
         let response: OpenAI.ChatCompletion | OpenAI.ChatCompletionChunk | Stream<OpenAI.ChatCompletionChunk>;
         try {
+            // Providers that use max_tokens instead of max_completion_tokens
+            const usesMaxTokens = ['deepseek', 'grok'].includes(modelConfig.provider);
+            let tokenLimit: number;
+            if (usesMaxTokens) {
+                if (isDeepSeekReasoner) {
+                    tokenLimit = maxTokens || 32768; // DeepSeek reasoner: 32K default, 64K max
+                } else {
+                    tokenLimit = Math.min(maxTokens || 8192, 8192); // DeepSeek chat: 8K max
+                }
+            } else {
+                tokenLimit = maxTokens || 150000;
+            }
+            const tokenParam = usesMaxTokens
+                ? { max_tokens: tokenLimit }
+                : { max_completion_tokens: tokenLimit };
+
             // Call OpenAI API with proper structured output format
             response = await client.chat.completions.create({
                 ...schemaObj,
@@ -687,7 +730,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 ...toolsOpts,
                 model: modelName,
                 messages: messagesToPass as OpenAI.ChatCompletionMessageParam[],
-                max_completion_tokens: maxTokens || 150000,
+                ...tokenParam,
                 stream: stream ? true : false,
                 reasoning_effort: modelConfig.nonReasoning ? undefined : reasoning_effort,
                 temperature,
