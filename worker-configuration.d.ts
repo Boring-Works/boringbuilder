@@ -10,7 +10,7 @@ declare namespace Cloudflare {
 		TEMPLATES_REPOSITORY: "https://github.com/cloudflare/vibesdk-templates";
 		ALLOWED_EMAIL: "codyboring@me.com";
 		DISPATCH_NAMESPACE: "boringbuilder-apps";
-		ENABLE_READ_REPLICAS: "false";
+		ENABLE_READ_REPLICAS: string;
 		CLOUDFLARE_AI_GATEWAY: "boringbuilder_gateway";
 		PLATFORM_CAPABILITIES: {"features":{"app":{"enabled":true},"presentation":{"enabled":false},"general":{"enabled":false}},"version":"1.0.0"};
 		ANTHROPIC_API_KEY: string;
