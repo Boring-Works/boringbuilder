@@ -162,9 +162,8 @@ const worker = {
 		// --- Domain-based Routing ---
 
 		// Normalize hostnames for both local development (localhost) and production.
-		// Also accept this worker's specific workers.dev hostname.
 		const isMainDomainRequest =
-			hostname === env.CUSTOM_DOMAIN || hostname === 'localhost' || hostname === 'boringbuilder.codyboring.workers.dev';
+			hostname === env.CUSTOM_DOMAIN || hostname === 'localhost';
 		const isSubdomainRequest =
 			hostname.endsWith(`.${previewDomain}`) ||
 			(hostname.endsWith('.localhost') && hostname !== 'localhost');

@@ -47,8 +47,6 @@ export function getAllowedOrigins(env: Env): string[] {
         origins.push(`https://${env.CUSTOM_DOMAIN}`);
     }
 
-
-
     // Development origins (only in development)
     if (isDev(env)) {
         origins.push('http://localhost:3000');
@@ -63,22 +61,11 @@ export function getAllowedOrigins(env: Env): string[] {
 }
 
 export function isOriginAllowed(env: Env, origin: string): boolean {
+    const allowedOrigins = getAllowedOrigins(env);
     if (!origin) return false;
 
-    const allowedOrigins = getAllowedOrigins(env);
-
     // Check against allowed origins
-    if (allowedOrigins.includes(origin)) return true;
-
-    // Accept only this worker's specific workers.dev origin
-    try {
-        const url = new URL(origin);
-        if (url.hostname === 'boringbuilder.codyboring.workers.dev') return true;
-    } catch {
-        // Invalid origin URL
-    }
-
-    return false;
+    return allowedOrigins.includes(origin);
 }
 
 /**
