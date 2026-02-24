@@ -1,15 +1,28 @@
 # VibeSDK Master Guide -- The Complete Playbook
 
 **For:** Cody Boring / Boring Works
-**Date:** 2026-02-24 (updated with external AI research synthesis)
-**Platform:** BoringBuilder (fork of Cloudflare VibeSDK)
+**Date:** 2026-02-24 (updated with external AI research synthesis + verified sources)
+**Platform:** BoringBuilder (fork of Cloudflare VibeSDK v1.5.0)
 **Deploy:** boringbuilder.codyboring.workers.dev / getboring.io
 
 ---
 
 ## What This Document Is
 
-Everything you need to know about VibeSDK to run it, extend it, and exploit it. Based on a full source code audit of 88+ agent files, 80+ frontend components, the SDK package, the template system, 80+ community/web sources, and cross-referenced against independent analyses from multiple AI systems.
+Everything you need to know about VibeSDK to run it, extend it, and exploit it. Based on a full source code audit of 88+ agent files, 80+ frontend components, the SDK package, the template system, 80+ community/web sources, cross-referenced against independent AI analyses, and verified against public sources.
+
+### Release History
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| v1.0.0 | Nov 3, 2025 | Initial open-source release |
+| v1.1.0 | Nov 4, 2025 | Early fixes |
+| v1.2.0 | Nov 30, 2025 | SDK enhancements |
+| v1.3.0 | Dec 9, 2025 | Code generation safety (AST analysis) |
+| v1.4.0 | Dec 20, 2025 | Zero-Knowledge Vault, Gemini 3 Flash |
+| v1.5.0 | Feb 6, 2026 | App visibility, phase timeline subscriptions, SDK client classes |
+
+Source: [github.com/cloudflare/vibesdk/releases](https://github.com/cloudflare/vibesdk/releases)
 
 ---
 
@@ -183,7 +196,7 @@ BoringBuilder currently runs a custom spec: 4 vCPU, 12 GiB memory, 10 GB disk.
 
 ### How Templates Work
 
-Templates live in a separate GitHub repo and are deployed to an R2 bucket as zip files.
+Templates live in a separate GitHub repo (forked to [Boring-Works/vibesdk-templates](https://github.com/Boring-Works/vibesdk-templates)) and are deployed to an R2 bucket as zip files.
 
 **Template Catalog Flow:**
 1. `template_catalog.json` in R2 lists all available templates
@@ -436,12 +449,16 @@ Since VibeSDK supports BYOK and multi-model routing, you can optimize costs per 
 
 | Provider | Cost/1M input tokens | Best for |
 |----------|---------------------|----------|
-| Gemini Flash | ~$0.10 | Code implementation, classification |
-| GPT-4o Mini | ~$0.15 | Quick conversational responses |
+| DeepSeek V3.2 (cache hit) | ~$0.03 | Repeated patterns, boilerplate |
+| DeepSeek V3.1 | ~$0.15 | General code implementation |
+| Gemini Flash | ~$0.10 | Classification, template selection |
+| Groq (Llama 3.3 70B) | ~$0.06 | Fast inference, conversational |
 | Gemini Pro | ~$0.50 | Blueprint generation |
 | Claude Sonnet | ~$3.00 | Complex debugging, analysis |
 
-**Strategy:** Route each operation to the cheapest provider that meets quality requirements. Template selection and code gen use Gemini Flash. Only blueprint and deep debugging use expensive models. This is how you get $0.05/generation instead of $5.00.
+**Strategy:** Route via OpenRouter to DeepSeek for code generation (90% of token spend). Gemini Flash for template selection. Only blueprint and deep debugging hit expensive models. With DeepSeek's cache hits at $0.03/M tokens, similar code patterns across app generations get nearly free.
+
+**Realistic monthly cost at scale:** $30 Cloudflare infrastructure + $15-45 in DeepSeek tokens = **200+ app generations for under $75/month**. Sabrina Ramonov documents the [$5 Workers + $25 Platforms base cost](https://www.sabrina.dev/p/i-built-my-own-vibe-coding-platform-vibesdk) in her self-hosting guide.
 
 ### Zero Egress Advantage
 
@@ -696,7 +713,15 @@ VibeSDK's codebase natively supports these platform providers (verified in `work
 | Cerebras | `CEREBRAS_API_KEY` | `CEREBRAS_API_KEY_BYOK` | High-performance (models commented out) |
 | OpenRouter | `OPENROUTER_API_KEY` | -- | Gateway to 100+ models (DeepSeek, Kimi, Qwen, etc.) |
 
-**The cheap strategy:** Use OpenRouter to access DeepSeek-V3/R1 (~$0.14-0.27/M tokens) for 90% of operations. Only route blueprint generation and deep debugging to expensive models. Configure in `worker/agents/inferutils/config.ts`.
+**The cheap strategy:** Use OpenRouter to access DeepSeek models for 90% of operations. Only route blueprint generation and deep debugging to expensive models. Configure in `worker/agents/inferutils/config.ts`.
+
+**Verified DeepSeek pricing (Feb 2026):**
+- DeepSeek V3.1: $0.15/M input tokens (cheapest production model)
+- DeepSeek V3.2: $0.028/M (cache hit) to $0.28/M (cache miss) input, $0.42/M output
+- Cache hits save 90% -- repeated patterns in code generation benefit massively
+- At these rates, a typical app generation (100K tokens) costs $0.003-0.03
+
+Source: [pricepertoken.com/pricing-page/provider/deepseek](https://pricepertoken.com/pricing-page/provider/deepseek)
 
 **Additional BYOK secrets** users can store: Stripe keys, GitHub token, Vercel token, Supabase URL/key (all defined in `worker/types/secretsTemplates.ts`).
 
@@ -850,4 +875,23 @@ Items still pending from the review:
 
 ---
 
-*Compiled from 4 parallel deep research agents analyzing: core architecture (88+ agent files), template system, community sources (80+ URLs), frontend (80+ components), and cross-referenced against independent analyses from multiple AI systems covering VibeSDK and Google Jules SDK.*
+## Verified Community Resources
+
+| Resource | URL | What It Covers |
+|----------|-----|---------------|
+| Official repo | [github.com/cloudflare/vibesdk](https://github.com/cloudflare/vibesdk) | Source code, issues, releases |
+| Templates repo | [github.com/cloudflare/vibesdk-templates](https://github.com/cloudflare/vibesdk-templates) | Official templates |
+| Our templates fork | [github.com/Boring-Works/vibesdk-templates](https://github.com/Boring-Works/vibesdk-templates) | BoringBuilder templates |
+| Cloudflare blog post | [blog.cloudflare.com](https://blog.cloudflare.com/deploy-your-own-ai-vibe-coding-platform/) | Official launch announcement |
+| Sabrina Ramonov guide | [sabrina.dev](https://www.sabrina.dev/p/i-built-my-own-vibe-coding-platform-vibesdk) | Step-by-step self-hosting tutorial |
+| Sabrina TikTok series | [@sabrina_ramonov](https://www.tiktok.com/@sabrina_ramonov/video/7557501758361062686) | Video walkthrough of setup + deploy |
+| FreeVibeCode.AI | [sabrina.dev](https://www.sabrina.dev/p/the-best-free-vibe-coding-tool-freevibecodeai) | Free public VibeSDK instance |
+| Product Hunt | [producthunt.com](https://www.producthunt.com/products/vibesdk-by-cloudflare) | Community discussion |
+| BrightCoding writeup | [blog.brightcoding.dev](https://www.blog.brightcoding.dev/2026/02/10/vibesdk-the-revolutionary-ai-platform-builder-every-developer-needs) | Feature overview |
+| MarkTechPost | [marktechpost.com](https://www.marktechpost.com/2025/09/23/cloudflare-ai-team-just-open-sourced-vibesdk-that-lets-anyone-build-and-deploy-a-full-ai-vibe-coding-platform-with-a-single-click/) | Launch coverage |
+| DeepSeek pricing | [pricepertoken.com](https://pricepertoken.com/pricing-page/provider/deepseek) | Current token costs |
+| Changelog | [github.com/cloudflare/vibesdk/blob/main/CHANGELOG.md](https://github.com/cloudflare/vibesdk/blob/main/CHANGELOG.md) | Detailed release notes |
+
+---
+
+*Compiled from 4 parallel deep research agents analyzing: core architecture (88+ agent files), template system, community sources (80+ URLs), frontend (80+ components), cross-referenced against independent AI analyses, and verified against public sources including GitHub releases, Sabrina Ramonov's tutorials, and DeepSeek pricing data.*
