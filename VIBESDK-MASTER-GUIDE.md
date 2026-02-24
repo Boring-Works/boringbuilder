@@ -669,6 +669,53 @@ The code generation pipeline isn't limited to apps. Repurpose it for:
 
 The same blueprint -> phase -> implementation flow works for any structured content.
 
+### Structured Intake Form (Replace the Free-Text Box)
+
+The default "What should we build today?" single textbox is fine for developers but terrible for non-technical users. Replace it with a structured form that captures exact intent:
+
+**Multi-step wizard approach:**
+1. **Project Type** -- checkboxes/chips: Marketing Website, Real Estate Platform, Campaign Tool, Copy Studio, Dashboard, etc.
+2. **Features & Requirements** -- dynamic checkbox grid that populates based on project type (e.g. Real Estate shows: MLS import, virtual tour, mortgage calculator, lead forms)
+3. **Design & Branding** -- color pickers, logo upload, reference images, tone-of-voice selector (Warm, Urgent, Professional, Playful)
+4. **Extra Context** -- file uploads (brand guidelines, existing assets), special instructions, target audience
+
+The form compiles all selections into an optimized prompt that produces dramatically better first-generation results. Non-technical users get 3-5x improvement in output quality because the AI gets structured intent instead of vague descriptions.
+
+**Implementation path:** Build this as a React component that replaces the home screen, or build it as a standalone app using VibeSDK itself (meta: vibe the tool that improves vibing).
+
+### Cheap Model Strategy (Verified Provider Support)
+
+VibeSDK's codebase natively supports these platform providers (verified in `worker/api/controllers/modelConfig/byokHelper.ts`):
+
+| Provider | Platform Key | BYOK Key | Notes |
+|----------|-------------|----------|-------|
+| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_API_KEY_BYOK` | Claude models |
+| OpenAI | `OPENAI_API_KEY` | `OPENAI_API_KEY_BYOK` | GPT models |
+| Google AI Studio | `GOOGLE_AI_STUDIO_API_KEY` | `GOOGLE_AI_STUDIO_API_KEY_BYOK` | Gemini models |
+| Groq | `GROQ_API_KEY` | -- | Fast inference |
+| Cerebras | `CEREBRAS_API_KEY` | `CEREBRAS_API_KEY_BYOK` | High-performance (models commented out) |
+| OpenRouter | `OPENROUTER_API_KEY` | -- | Gateway to 100+ models (DeepSeek, Kimi, Qwen, etc.) |
+
+**The cheap strategy:** Use OpenRouter to access DeepSeek-V3/R1 (~$0.14-0.27/M tokens) for 90% of operations. Only route blueprint generation and deep debugging to expensive models. Configure in `worker/agents/inferutils/config.ts`.
+
+**Additional BYOK secrets** users can store: Stripe keys, GitHub token, Vercel token, Supabase URL/key (all defined in `worker/types/secretsTemplates.ts`).
+
+### Non-Coding Use Cases (The Meta-Play)
+
+VibeSDK's real power for non-developers isn't "writing text" -- it's **building interactive tools that generate, host, and deploy content at scale**. The reframe: "I need marketing copy" becomes "I now own a professional marketing copy studio."
+
+**Marketing Copy Studio:** Vibe an app with product description input, tabs for Hero/Email/Social/Ad variants, live preview pane rendering copy in actual Tailwind layouts, A/B test export. The agent writes sample copy during generation, then you iterate via chat.
+
+**Press Release Generator:** Form inputs (company, headline, key points, quotes) with professional newspaper-style preview, format variations (formal/casual/viral), PDF/Word export, SEO meta generator.
+
+**Political Campaign Command Center:** Self-hosted for privacy. Candidate profile + slogan generator, volunteer signup with map, donation flow, policy cards with social graphics generator, press section. Deploy in under 10 minutes, iterate live with campaign manager, deploy to custom domain. No dev team, no data leaks.
+
+**Real Estate Marketing Site:** Luxury hero, interactive map with listings, property detail modals, AI description generator for new listings, lead capture, mortgage calculator, brochure PDF generator. Use the SDK to batch-generate one per listing.
+
+**Prompt Engineering Playground:** Prompt input with variables, live test against multiple models via AI Gateway, scorecards (clarity, specificity, chain-of-thought), version history, A/B comparison, "Optimize" button that rewrites using meta-prompting. A tool that makes every other LLM better.
+
+**The pattern:** Don't use VibeSDK to write content directly. Use it to build the *tool* that generates and manages that content. The tool persists, scales, and can be given to a team.
+
 ---
 
 ## Part 8: Google Jules SDK Integration Opportunities
