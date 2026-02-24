@@ -22,22 +22,18 @@
 		"enabled": true,
         "head_sampling_rate": 1,
 	},
-    "unsafe": {
-        "bindings": [
-            {
-                "name": "API_RATE_LIMITER",
-                "type": "ratelimit",
-                "namespace_id": "2101",
-                "simple": { "limit": 10000, "period": 60 }
-            },
-            {
-                "name": "AUTH_RATE_LIMITER",
-                "type": "ratelimit",
-                "namespace_id": "2102",
-                "simple": { "limit": 1000, "period": 60 }
-            }
-        ]
-    },
+    "ratelimits": [
+        {
+            "name": "API_RATE_LIMITER",
+            "namespace_id": "2101",
+            "simple": { "limit": 10000, "period": 60 }
+        },
+        {
+            "name": "AUTH_RATE_LIMITER",
+            "namespace_id": "2102",
+            "simple": { "limit": 1000, "period": 60 }
+        }
+    ],
 	/**
 	 * Bindings
 	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
@@ -141,7 +137,7 @@
 		{ "pattern": "*.getboring.io/*", "zone_id": "46f4e6ccfe6d3508405011318d8c8126" }
 	],
 	"vars": {
-        "TEMPLATES_REPOSITORY": "https://github.com/cloudflare/vibesdk-templates",
+        "TEMPLATES_REPOSITORY": "https://github.com/Boring-Works/vibesdk-templates",
         "ALLOWED_EMAIL": "codyboring@me.com",
         "DISPATCH_NAMESPACE": "boringbuilder-apps",
         "ENABLE_READ_REPLICAS": "false",
