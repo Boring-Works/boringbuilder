@@ -1,7 +1,7 @@
 # VibeSDK Master Guide -- The Complete Playbook
 
 **For:** Cody Boring / Boring Works
-**Date:** 2026-02-24
+**Date:** 2026-02-24 (updated with external AI research synthesis)
 **Platform:** BoringBuilder (fork of Cloudflare VibeSDK)
 **Deploy:** boringbuilder.codyboring.workers.dev / getboring.io
 
@@ -9,7 +9,7 @@
 
 ## What This Document Is
 
-Everything you need to know about VibeSDK to run it, extend it, and exploit it. Based on a full source code audit of 88+ agent files, 80+ frontend components, the SDK package, the template system, and 80+ community/web sources.
+Everything you need to know about VibeSDK to run it, extend it, and exploit it. Based on a full source code audit of 88+ agent files, 80+ frontend components, the SDK package, the template system, 80+ community/web sources, and cross-referenced against independent analyses from multiple AI systems.
 
 ---
 
@@ -58,6 +58,17 @@ User Prompt
     - Regenerates broken files
     - Loops until clean or max retries
 ```
+
+### Typical Phase Breakdown
+
+Most generated apps follow this phase pattern:
+1. **Project Setup** -- package.json, configs, wrangler.jsonc
+2. **Core Components** -- shared UI, layouts, base components
+3. **Pages & Routing** -- route structure, page components
+4. **Styling & UI** -- Tailwind theming, responsive layout
+5. **API Integration** -- data fetching, server communication
+
+Each phase emits telemetry and file updates in real-time. The phase timeline is a first-class UI element the user watches progress through.
 
 ### Two Behavior Modes
 
@@ -113,6 +124,23 @@ The system doesn't use one model for everything. Each operation is tuned:
 
 **Loop detection:** Every 50 characters of streaming output, a `LoopDetector` checks the last 1000 chars for repetition. Kills the stream immediately if detected. Saves tokens and money.
 
+**BYOK (Bring Your Own Key):** Users can provide their own API keys for OpenAI, Anthropic, or Google Gemini. The vault system stores these encrypted client-side. The agent requests vault unlock via WebSocket when it needs a key. This enables:
+- Users paying for their own LLM usage
+- Provider flexibility per user
+- Cost optimization (route cheap tasks to cheap providers, hard tasks to expensive ones)
+
+### The WebSocket Protocol
+
+10+ message types power the real-time communication:
+
+**Client -> Server:** `chat.message`, `file.update`, `apply.edits`, `error`
+**Server -> Client:** `chat.response`, `file.create`, `file.delete`, `phase.change`, `preview.update`, `error`, `ping`/`pong`
+
+Key patterns:
+- Session persistence: reconnecting clients get full state restoration via `agent_connected` message
+- Message deduplication: tool execution causes duplicate AI messages; both backend and frontend deduplicate
+- Custom protocol extensions are supported for adding analytics, presence, etc.
+
 ### The Git System
 
 Every project has a full git history stored in SQLite inside the Durable Object:
@@ -134,13 +162,28 @@ Client-side zero-knowledge encryption for user API keys:
 - Recovery codes (8 codes, encrypted with vault master key)
 - Agent can request vault unlock via WebSocket when it needs a secret
 
+### Container Instance Types
+
+The sandbox runs in Cloudflare Containers with configurable specs:
+
+| Type | vCPU | Memory | Use Case |
+|------|------|--------|----------|
+| `lite` | 1/16 | 256 MiB | Dev/testing |
+| `standard-1` | 1/2 | 4 GiB | Light workloads |
+| `standard-2` | 1 | 8 GiB | Standard apps |
+| `standard-3` | 2 | 12 GiB | Default (recommended) |
+| `standard-4` | 4 | 12 GiB | High-performance |
+| Custom object | Any | Any | `{ vcpu, memory_mib, disk_mb }` |
+
+BoringBuilder currently runs a custom spec: 4 vCPU, 12 GiB memory, 10 GB disk.
+
 ---
 
 ## Part 2: The Template System
 
 ### How Templates Work
 
-Templates live in a separate GitHub repo (`cloudflare/vibesdk-templates`) and are deployed to an R2 bucket as zip files.
+Templates live in a separate GitHub repo and are deployed to an R2 bucket as zip files.
 
 **Template Catalog Flow:**
 1. `template_catalog.json` in R2 lists all available templates
@@ -168,19 +211,63 @@ A valid template has:
 - `package.json` (dependencies, scripts)
 - `wrangler.jsonc` (Cloudflare config)
 - `vite.config.ts` (build config)
-- `.important_files.json` (files the AI should read)
+- `.important_files.json` (files the AI should read for context)
 - `.donttouch_files.json` (files the AI must not modify)
-- `.redacted_files.json` (files hidden from AI context)
+- `.redacted_files.json` (files hidden from AI context to save tokens)
+
+### The Overlay Pattern (Advanced)
+
+Templates support a reference + overlay model:
+- **Base reference** (read-only) provides the foundation
+- **Overlay** contains customizations that deep-merge on top
+- `package.json` uses deep merge strategy (add/remove dependencies)
+- Exclude patterns prevent certain files from being included
+- Template variables with types: `projectName: { type: string, required: true }`
+- Overlays can be stacked: base -> industry -> client-specific
+
+This is powerful for maintaining 1 base template + N overlays instead of N full templates. Change the base, all variants update.
 
 ### Custom Templates
 
-Your `TEMPLATES_REPOSITORY` var points to the template source. You can:
-1. Fork `cloudflare/vibesdk-templates`
-2. Add your own templates following the structure
-3. Point `TEMPLATES_REPOSITORY` to your fork
-4. Run the deploy script to push to R2
+Your `TEMPLATES_REPOSITORY` now points to `https://github.com/Boring-Works/vibesdk-templates` (forked). You can:
+1. Add your own templates following the structure
+2. Push to the fork
+3. Run the deploy script to push to R2
+4. Templates appear immediately in the AI's selection catalog
 
-**NOTE:** Your deployment still points to `https://github.com/cloudflare/vibesdk-templates`. You should fork this and point to your own repo.
+### Template YAML Definition (For Custom Templates)
+
+```yaml
+name: "my-template"
+extends: vite-cfagents-runner
+
+packageJson:
+  dependencies:
+    add:
+      - package: lodash
+        version: ^4.17.21
+    remove:
+      - old-dependency
+  scripts:
+    add:
+      test: vitest
+
+files:
+  exclude:
+    - src/components/OldComponent.tsx
+  add:
+    - path: src/components/NewFeature.tsx
+      template: new-feature.tsx.hbs
+    - path: .github/workflows/ci.yml
+      content: |
+        # CI workflow YAML
+
+variables:
+  projectName:
+    type: string
+    required: true
+    prompt: "What is your project name?"
+```
 
 ---
 
@@ -230,6 +317,51 @@ await session.wait.cloudflareDeployed();
 - `session.phases.list()` -- Get phase timeline
 - `session.on('file', cb)` -- React to file changes in real-time
 
+### Image-to-Code Prompts
+
+The SDK supports multimodal prompts -- upload a design mockup and get matching code:
+
+```typescript
+const session = await client.build({
+  prompt: [
+    { type: 'text', content: 'Recreate this UI exactly:' },
+    { type: 'image', source: { type: 'base64', data: screenshotBase64 } }
+  ]
+});
+```
+
+Supported formats: JPEG, PNG, WebP, GIF. This is a massive shortcut for design-to-code workflows.
+
+### GitHub Export
+
+Generated apps can be exported directly to GitHub:
+
+```typescript
+await session.export({
+  format: 'github',
+  repo: 'username/new-repo',
+  private: true,
+  createPR: true,
+  prTitle: 'Initial commit from BoringBuilder',
+  branch: 'generated'
+});
+```
+
+### Debug Mode
+
+Enable verbose logging for development and troubleshooting:
+
+```typescript
+const session = await client.build('...', {
+  debug: {
+    logWebSocket: true,   // Raw WebSocket message inspection
+    logPrompts: true,     // See exact prompts sent to LLMs
+    logTokens: true,      // Token counting per call
+    saveToFile: './debug-session.json'  // Full session replay
+  }
+});
+```
+
 ### `@cf-vibesdk/cli` (Command Line)
 
 v0.0.1 available on npm. Wraps the SDK for terminal usage. Early stage.
@@ -247,6 +379,14 @@ v0.0.1 available on npm. Wraps the SDK for terminal usage. Early stage.
 | `PreviewIframe` | `src/routes/chat/components/preview-iframe.tsx` | WebSocket optional |
 | `Blueprint` | `src/routes/chat/components/blueprint.tsx` | None |
 
+### The ChatWrapper (779 Lines, Repurposable)
+
+The chat component is a comprehensive state machine, not just a chat box. Key properties:
+- `messages`, `input`, `isLoading`, `append`, `reload`, `stop`, `data`, `error`
+- Session persistence via `id: 'session-123'` enables cross-reload state recovery
+- Custom `data` channel for streaming arbitrary values alongside chat
+- Can be repurposed as a command interface, progress dashboard, or form wizard
+
 ### What You Can Build Without the Chat
 
 1. **Preview-only embedding** -- Just use PreviewIframe with a URL
@@ -254,6 +394,7 @@ v0.0.1 available on npm. Wraps the SDK for terminal usage. Early stage.
 3. **Headless build pipeline** -- SDK only, no frontend at all
 4. **Custom chat UI** -- Use the WebSocket protocol directly
 5. **App gallery** -- Use the apps API (`listPublic`, `getAppDetails`)
+6. **Conversational command interface** -- ChatWrapper as natural language shell for any backend
 
 ### The Feature Registry
 
@@ -289,6 +430,19 @@ Rough estimate for a typical app generation (blueprint + 5 phases + lint):
 - With Gemini models: **$0.05-0.50 per generation**
 - With GPT/Claude models: **$0.50-5.00 per generation**
 
+### AI Arbitrage Opportunity
+
+Since VibeSDK supports BYOK and multi-model routing, you can optimize costs per operation:
+
+| Provider | Cost/1M input tokens | Best for |
+|----------|---------------------|----------|
+| Gemini Flash | ~$0.10 | Code implementation, classification |
+| GPT-4o Mini | ~$0.15 | Quick conversational responses |
+| Gemini Pro | ~$0.50 | Blueprint generation |
+| Claude Sonnet | ~$3.00 | Complex debugging, analysis |
+
+**Strategy:** Route each operation to the cheapest provider that meets quality requirements. Template selection and code gen use Gemini Flash. Only blueprint and deep debugging use expensive models. This is how you get $0.05/generation instead of $5.00.
+
 ### Zero Egress Advantage
 
 R2 and D1 have **zero egress fees**. This is significant for a platform that serves generated files, template zips, and preview assets to users. On AWS S3, this would add up fast.
@@ -312,6 +466,18 @@ R2 and D1 have **zero egress fees**. This is significant for a platform that ser
 
 **Risk level:** Low. You already have it deployed.
 
+**Competitive edge vs. alternatives:**
+
+| Feature | BoringBuilder | Vercel v0 | GitHub Copilot | Bolt.new |
+|---------|--------------|-----------|----------------|----------|
+| Real-time preview | Yes | No | No | Yes |
+| Sandboxed execution | Yes | No | No | Yes |
+| BYOK (multi-provider) | Yes | No | No | No |
+| Phase timeline | Yes | No | No | No |
+| Git clone export | Yes | Limited | No | No |
+| Self-hosted option | Yes | No | No | No |
+| White-label capable | Yes | No | No | No |
+
 ---
 
 ### #2: Domain-Specific Template Packs
@@ -328,11 +494,14 @@ R2 and D1 have **zero egress fees**. This is significant for a platform that ser
 - **Local government**: Public meeting portals, permit applications
 
 **How to execute:**
-1. Fork `vibesdk-templates`
+1. Templates repo already forked to `Boring-Works/vibesdk-templates`
 2. Create templates with pre-built components for each vertical
-3. Include `.important_files.json` guiding the AI on the domain
-4. Deploy to your R2 bucket
-5. Charge premium for industry packs
+3. Use the overlay pattern: one base + industry overlays = maintainable at scale
+4. Include `.important_files.json` guiding the AI on the domain
+5. Deploy to your R2 bucket
+6. Charge premium for industry packs
+
+**Template inheritance strategy:** Maintain 1 base + 10 overlays instead of 10 full templates. When you improve the base, all verticals improve automatically.
 
 ---
 
@@ -363,6 +532,16 @@ for (const property of properties) {
 }
 ```
 
+**Image-to-code variant:** Upload a design mockup per client and generate matching implementations:
+```typescript
+const session = await client.build({
+  prompt: [
+    { type: 'text', content: `Build ${client.name}'s website matching this design:` },
+    { type: 'image', source: { type: 'base64', data: client.mockupBase64 } }
+  ]
+});
+```
+
 ---
 
 ### #4: The Preview System as an Embeddable Widget
@@ -384,7 +563,7 @@ for (const property of properties) {
 
 **The opportunity:** The `vite-cfagents-runner` template already supports the Cloudflare Agents SDK with MCP tool support. You can create apps that are themselves AI agents.
 
-**Why it's unfair:** Most AI builders make static websites. VibeSDK can build apps that USE AI — chatbots, document processors, data analyzers. It's AI building AI tools.
+**Why it's unfair:** Most AI builders make static websites. VibeSDK can build apps that USE AI -- chatbots, document processors, data analyzers. It's AI building AI tools.
 
 **How to execute:**
 - Build specialized agent templates (customer support bot, document analyzer, data dashboard with AI insights)
@@ -429,7 +608,144 @@ for (const property of properties) {
 
 ---
 
-## Part 7: Remaining Fix List
+## Part 7: Advanced Patterns & Techniques
+
+### The Phase System as a Universal Progress Tracker
+
+The phase timeline isn't just for code generation. It can be adapted for ANY multi-step process:
+
+```typescript
+// Example: Data pipeline with phase-style progress
+const phases = [
+  { id: 'extract', name: 'Extracting Data', status: 'pending' },
+  { id: 'transform', name: 'Transforming', status: 'pending' },
+  { id: 'load', name: 'Loading to Warehouse', status: 'pending' },
+  { id: 'validate', name: 'Validating Results', status: 'pending' }
+];
+```
+
+Each phase broadcasts real-time progress via WebSocket. The same UI that shows "Building Phase 3/5" can show "Processing Step 3/5" for video rendering, ML training, ETL jobs -- anything with sequential stages.
+
+### Chat-as-Interface Pattern
+
+The ChatWrapper can be repurposed as a natural language command interface for any application:
+
+```typescript
+// Intent routing: parse natural language into structured actions
+const intents = [
+  { pattern: /show (.*) sales (?:for|in)? (.*)/i, handler: 'showSales' },
+  { pattern: /export (.*) to (csv|json|pdf)/i, handler: 'exportData' },
+  { pattern: /schedule (.*) for (tomorrow|next week|.*)/i, handler: 'scheduleTask' }
+];
+```
+
+Instead of building traditional forms and dashboards, give users a chat box that routes to your backend. Rich message components (charts, tables, forms, confirmations) render inline in the chat.
+
+### Sandbox-as-a-Service
+
+The container sandbox can execute arbitrary user code safely:
+
+| Profile | Container | Timeout | Use Case |
+|---------|-----------|---------|----------|
+| Quick script | lite | 5s | JS validation, formatting |
+| Plugin runner | standard-1 | 30s | User plugins, webhooks |
+| Automation | standard-2 | 60s | Workflow automation |
+| Data processing | standard-4 | 300s | Heavy compute |
+
+Key safety features:
+- Domain-whitelisted `fetch` (restrict which APIs user code can call)
+- Captured `console` for output logging
+- Timeout enforcement per profile
+- Isolated filesystem per session
+
+### Build Pipeline as Content Generator
+
+The code generation pipeline isn't limited to apps. Repurpose it for:
+- **Documentation** from descriptions
+- **Test suites** from API specs
+- **Email templates** from briefs
+- **Landing pages** from product descriptions
+- **Database schemas** from natural language
+
+The same blueprint -> phase -> implementation flow works for any structured content.
+
+---
+
+## Part 8: Google Jules SDK Integration Opportunities
+
+### What Jules Adds to the Stack
+
+Google Jules is an autonomous coding agent with its own SDK. Where VibeSDK generates apps interactively, Jules executes coding tasks autonomously against GitHub repos. They complement each other:
+
+| VibeSDK Strength | Jules Strength | Combined |
+|-----------------|----------------|----------|
+| Real-time interactive generation | Autonomous background execution | 24-hour dev cycle |
+| Live preview in browser | Full VM with git/npm/test | Prototype then harden |
+| Chat-driven iteration | Plan-first autonomous execution | Design then delegate |
+| Template-based scaffolding | Code modification across repos | Generate then maintain |
+
+### The Day-Night Development Cycle
+
+**Day (VibeSDK):** Interactive prototyping, stakeholder collaboration, design iteration
+**Night (Jules):** Autonomous test generation, security scanning, documentation updates, code refactoring
+**Morning:** Review Jules-generated PRs, merge, deploy
+
+### Jules Fleet Processing
+
+Jules can process multiple repos simultaneously:
+
+```typescript
+await jules.all(repos, async (repo) => {
+  return jules.run({
+    github: repo.full_name,
+    goal: 'Security audit: find and fix SQL injection, XSS, hardcoded secrets',
+    config: { mode: 'automated', max_iterations: 50 }
+  });
+}, { concurrency: 10, stopOnError: false });
+```
+
+Use cases for BoringBuilder:
+- **Security scanning** across all generated apps
+- **Dependency updates** across template repos
+- **Test generation** for generated code
+- **Documentation sync** when templates change
+
+### Jules Session Archaeology
+
+Jules caches session history locally with a three-tier system:
+- **Frozen** (>30 days): Zero API calls, instant retrieval
+- **Warm** (<24h, verified): One API call to check freshness
+- **Hot** (active): Real-time streaming
+
+Mine past sessions to improve future prompts:
+
+```typescript
+// Find patterns from successful sessions
+const patterns = await jules.select({
+  from: 'sessions',
+  where: { status: 'completed', success_rate: { $gt: 0.9 } }
+});
+
+// Use patterns to enhance new VibeSDK templates
+const template = createTemplateFromPatterns(patterns);
+```
+
+Your AI gets smarter with every session. Competitors start blind each time.
+
+### Jules MCP Tools (Available Now)
+
+Jules exposes these via MCP -- usable from any MCP-compatible client:
+- `create_session` -- Start autonomous coding task
+- `get_session_state` -- Dashboard view of progress
+- `send_reply_to_session` -- Guide execution mid-flow
+- `query_cache` -- JQL queries against local session cache
+- `get_code_review_context` -- Structured PR analysis
+- `show_code_diff` -- Formatted unified diffs
+- `get_bash_outputs` -- Extract command execution results
+
+---
+
+## Part 9: Remaining Fix List
 
 Items still pending from the review:
 
@@ -440,7 +756,30 @@ Items still pending from the review:
 | Sandbox container not starting for some sessions | Infrastructure issue | MONITOR -- Cloudflare Containers beta |
 | HKDF info string `vibesdk-vault-vmk` | Intentionally kept -- changing breaks existing vaults | CLOSED |
 | Rotate exposed secrets from chat history | Not done | HIGH -- API token and keys were in plain text |
-| SandboxDockerfile rebrand | Changed but not rebuilt | LOW -- needs `colima start` then docker build/push |
+| SandboxDockerfile rebrand | Changed but not rebuilt | LOW -- cosmetic only, defer |
+
+---
+
+## Part 10: Pro Tips & Gotchas
+
+### What Works Well
+
+1. **Debug mode** (`debug.logWebSocket`) -- enable it to understand message flow during development
+2. **Image prompts** -- uploading design mockups dramatically improves output quality
+3. **Template overlays** -- create 5 overlays instead of 5 full templates, maintain one base
+4. **Container sizing** -- use `lite` for dev/test, `standard-3`+ for production previews
+5. **Phase timeline streaming** -- subscribe to phase events for real-time progress UIs
+6. **The `.important_files.json`** -- this is how you steer the AI toward domain-specific patterns. Invest time here.
+
+### Known Gotchas
+
+1. **WebSocket reconnection** -- the auto-reconnect buffer can lose messages during network blips. Subscribe to `onMessage` handler, not raw WebSocket events
+2. **Template deep merge** -- smart but can cause unexpected property inheritance across overlay layers. Test overlay combinations.
+3. **Container timeouts** -- jobs exceeding the timeout get hard-killed with no graceful degradation. Size timeouts generously.
+4. **`cn()` utility** -- the AI frequently generates code using `cn()` (clsx/tailwind-merge) without importing it. This is the most common lint failure. Consider adding it to template base files.
+5. **Sandbox provisioning** -- Cloudflare Containers is still beta. Containers occasionally fail to start for individual sessions. Not fixable from application code.
+6. **Token limits** -- large blueprints can exceed context windows. The system handles this with chunking, but very complex apps may lose context between phases.
+7. **Session isolation** -- each Durable Object instance is single-threaded. Heavy sessions don't affect others, but a single session can't parallelize internally.
 
 ---
 
@@ -460,7 +799,8 @@ Items still pending from the review:
 | Vault crypto | `src/contexts/vault-context.tsx` |
 | Debug tools | `/debug-tools/` |
 | Community research | `VIBESDK-RESEARCH.md` (same directory) |
+| External AI analyses | `~/CodyML/VibeSDK & Google Jules Analysis/` |
 
 ---
 
-*Compiled from 4 parallel deep research agents analyzing: core architecture (88+ agent files), template system, community sources (80+ URLs), and frontend (80+ components).*
+*Compiled from 4 parallel deep research agents analyzing: core architecture (88+ agent files), template system, community sources (80+ URLs), frontend (80+ components), and cross-referenced against independent analyses from multiple AI systems covering VibeSDK and Google Jules SDK.*
