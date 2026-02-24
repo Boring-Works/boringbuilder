@@ -139,7 +139,6 @@
         }
 	],
 	"routes": [
-		{ "pattern": "build.getboring.io/*", "custom_domain": true },
 		{ "pattern": "*.getboring.io/*", "zone_id": "46f4e6ccfe6d3508405011318d8c8126" }
 	],
 	"vars": {
