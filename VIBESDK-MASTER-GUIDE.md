@@ -435,12 +435,12 @@ Items still pending from the review:
 
 | Item | Status | Priority |
 |------|--------|----------|
-| TEMPLATES_REPOSITORY points to Cloudflare's repo | Not fixed | HIGH -- fork and point to your own |
+| TEMPLATES_REPOSITORY points to Cloudflare's repo | FIXED -- forked to Boring-Works/vibesdk-templates | DONE |
+| Rate limiter namespace IDs 2101/2102 | FIXED -- migrated from unsafe to GA ratelimits config | DONE |
 | Sandbox container not starting for some sessions | Infrastructure issue | MONITOR -- Cloudflare Containers beta |
-| HKDF info string `vibesdk-vault-vmk` | Not changed | LOW -- only matters if vaults already created |
-| Rate limiter namespace IDs 2101/2102 | Not verified | MEDIUM -- check if they exist |
+| HKDF info string `vibesdk-vault-vmk` | Intentionally kept -- changing breaks existing vaults | CLOSED |
 | Rotate exposed secrets from chat history | Not done | HIGH -- API token and keys were in plain text |
-| SandboxDockerfile rebrand | Changed but not rebuilt | LOW -- needs Docker to rebuild container image |
+| SandboxDockerfile rebrand | Changed but not rebuilt | LOW -- needs `colima start` then docker build/push |
 
 ---
 
