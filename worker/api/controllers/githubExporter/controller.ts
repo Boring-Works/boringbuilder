@@ -195,7 +195,7 @@ export class GitHubExporterController extends BaseController {
                     repositoryHtmlUrl: repositoryUrl,
                     isPrivate,
                     token,
-                    email: 'vibesdk-bot@cloudflare.com',
+                    email: 'bot@getboring.io',
                     username
                 }
             });
@@ -313,7 +313,7 @@ export class GitHubExporterController extends BaseController {
                     description: exportData.description,
                     isPrivate: exportData.isPrivate || false,
                     token: tokenResult.accessToken,
-                    username: 'vibesdk-bot'
+                    username: 'boringbuilder-bot'
                 });
 
                 if (!result.success) {

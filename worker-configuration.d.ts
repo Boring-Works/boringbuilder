@@ -8,10 +8,10 @@ declare namespace Cloudflare {
 	interface Env {
 		VibecoderStore: KVNamespace;
 		TEMPLATES_REPOSITORY: "https://github.com/cloudflare/vibesdk-templates";
-		ALLOWED_EMAIL: "";
-		DISPATCH_NAMESPACE: "vibesdk-default-namespace";
-		ENABLE_READ_REPLICAS: "true";
-		CLOUDFLARE_AI_GATEWAY: "vibesdk-gateway";
+		ALLOWED_EMAIL: "codyboring@me.com";
+		DISPATCH_NAMESPACE: "boringbuilder-apps";
+		ENABLE_READ_REPLICAS: "false";
+		CLOUDFLARE_AI_GATEWAY: "boringbuilder_gateway";
 		PLATFORM_CAPABILITIES: {"features":{"app":{"enabled":true},"presentation":{"enabled":false},"general":{"enabled":false}},"version":"1.0.0"};
 		ANTHROPIC_API_KEY: string;
 		OPENAI_API_KEY: string;
