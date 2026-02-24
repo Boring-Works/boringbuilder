@@ -323,6 +323,7 @@ const MODELS_MASTER = {
             provider: 'openrouter',
             creditCost: 1.1,
             contextSize: 131072,
+            nonReasoning: true,
         }
     },
     OR_DEEPSEEK_R1: {
@@ -333,6 +334,7 @@ const MODELS_MASTER = {
             provider: 'openrouter',
             creditCost: 2.2,
             contextSize: 131072,
+            nonReasoning: true,
         }
     },
     OR_CLAUDE_SONNET_4_6: {
