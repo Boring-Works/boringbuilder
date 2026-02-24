@@ -142,11 +142,11 @@
 		{ "pattern": "*.getboring.io/*", "zone_id": "46f4e6ccfe6d3508405011318d8c8126" }
 	],
 	"vars": {
-        "TEMPLATES_REPOSITORY": "https://github.com/cloudflare/vibesdk",
+        "TEMPLATES_REPOSITORY": "https://github.com/cloudflare/vibesdk-templates",
         "ALLOWED_EMAIL": "codyboring@me.com",
         "DISPATCH_NAMESPACE": "boringbuilder-apps",
         "ENABLE_READ_REPLICAS": "false",
-        "CLOUDFLARE_AI_GATEWAY": "boringbuilder_ai_gateway",
+        "CLOUDFLARE_AI_GATEWAY": "boringbuilder_gateway",
         "PLATFORM_CAPABILITIES": {
             "features": {
                 "app": {
