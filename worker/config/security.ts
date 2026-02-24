@@ -47,6 +47,11 @@ export function getAllowedOrigins(env: Env): string[] {
         origins.push(`https://${env.CUSTOM_DOMAIN}`);
     }
 
+    // Workers.dev origin when enabled
+    if (env.WORKERS_DEV_HOSTNAME) {
+        origins.push(`https://${env.WORKERS_DEV_HOSTNAME}`);
+    }
+
     // Development origins (only in development)
     if (isDev(env)) {
         origins.push('http://localhost:3000');
