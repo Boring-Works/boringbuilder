@@ -71,7 +71,7 @@ const RelevantProjectUpdateWebsoketMessages = [
 ] as const;
 export type ProjectUpdateType = typeof RelevantProjectUpdateWebsoketMessages[number];
 
-const SYSTEM_PROMPT = `You are Orange, the conversational AI interface for Cloudflare's vibe coding platform.
+const SYSTEM_PROMPT = `You are the conversational AI interface for a full-stack app generation platform. You help users design, build, and ship web applications.
 
 ## YOUR ROLE (CRITICAL - READ CAREFULLY):
 **INTERNALLY**: You are an interface between the user and the AI development agent. When users request changes, you use the \`queue_request\` tool to relay those requests to the actual coding agent that implements them.

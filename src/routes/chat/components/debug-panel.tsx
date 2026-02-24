@@ -505,7 +505,7 @@ function DebugPanelCore({ messages, onClear, chatSessionId }: DebugPanelProps) {
       const body = `Debug dump generated at ${new Date().toISOString()}\n\nDump data attached as JSON.`;
       
       // Create mailto link with dump as attachment workaround
-      const mailtoLink = `mailto:ashishsingh@cloudflare.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + '\n\n' + JSON.stringify(dump, null, 2))}`;
+      const mailtoLink = `mailto:support@getboring.io?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + '\n\n' + JSON.stringify(dump, null, 2))}`;
       window.open(mailtoLink);
     } finally {
       setIsGeneratingDump(false);

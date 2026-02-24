@@ -106,7 +106,7 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
 		return new Response('This application is not currently available.', { status: 404 });
 	}
 
-	// Extract the app name (e.g., "xyz" from "xyz.build.cloudflare.dev").
+	// Extract the app name (e.g., "xyz" from "xyz.getboring.io").
 	const appName = subdomain;
 	const dispatcher = env['DISPATCHER'];
 
@@ -162,14 +162,14 @@ const worker = {
 		// --- Domain-based Routing ---
 
 		// Normalize hostnames for both local development (localhost) and production.
-		// Also accept *.workers.dev for initial setup before custom domain DNS is configured.
+		// Also accept this worker's specific workers.dev hostname.
 		const isMainDomainRequest =
-			hostname === env.CUSTOM_DOMAIN || hostname === 'localhost' || hostname.endsWith('.workers.dev');
+			hostname === env.CUSTOM_DOMAIN || hostname === 'localhost' || hostname === 'boringbuilder.codyboring.workers.dev';
 		const isSubdomainRequest =
 			hostname.endsWith(`.${previewDomain}`) ||
 			(hostname.endsWith('.localhost') && hostname !== 'localhost');
 
-		// Route 1: Main Platform Request (e.g., build.cloudflare.dev or localhost)
+		// Route 1: Main Platform Request (e.g., build.getboring.io or localhost)
 		if (isMainDomainRequest) {
 			// Handle Git protocol endpoints directly
 			// Route: /apps/:id.git/info/refs or /apps/:id.git/git-upload-pack
@@ -203,7 +203,7 @@ const worker = {
 			return app.fetch(request, env, ctx);
 		}
 
-		// Route 2: User App Request (e.g., xyz.build.cloudflare.dev or test.localhost)
+		// Route 2: User App Request (e.g., xyz.getboring.io or test.localhost)
 		if (isSubdomainRequest) {
 			return handleUserAppRequest(request, env);
 		}

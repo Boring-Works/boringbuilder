@@ -60,8 +60,8 @@ class SetupManager {
 	});
 
 	constructor() {
-		console.log('🚀 VibeSDK Development Setup');
-		console.log('============================\n');
+		console.log('BoringBuilder Development Setup');
+		console.log('================================\n');
 	}
 
 	async setup(): Promise<void> {
@@ -1788,7 +1788,7 @@ class SetupManager {
 			}
 		}
 
-		console.log('\n✨ Happy coding with VibeSDK! ✨');
+		console.log('\nBoringBuilder setup complete. Build something.');
 	}
 
 	private async updateWorkerConfiguration(): Promise<void> {

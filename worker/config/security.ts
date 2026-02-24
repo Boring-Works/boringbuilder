@@ -70,10 +70,10 @@ export function isOriginAllowed(env: Env, origin: string): boolean {
     // Check against allowed origins
     if (allowedOrigins.includes(origin)) return true;
 
-    // Accept workers.dev origins when workers_dev is enabled
+    // Accept only this worker's specific workers.dev origin
     try {
         const url = new URL(origin);
-        if (url.hostname.endsWith('.workers.dev')) return true;
+        if (url.hostname === 'boringbuilder.codyboring.workers.dev') return true;
     } catch {
         // Invalid origin URL
     }

@@ -50,9 +50,9 @@ const SHARED_IMPLEMENTATION_CONFIG = {
 //======================================================================================
 // ATTENTION! Platform config requires specific API keys and Cloudflare AI Gateway setup.
 //======================================================================================
-/* 
-These are the configs used at build.cloudflare.dev 
-You may need to provide API keys for these models in your environment or use 
+/*
+Multi-provider config (requires PLATFORM_MODEL_PROVIDERS env var to be set).
+You may need to provide API keys for these models in your environment or use
 Cloudflare AI Gateway unified billing for seamless model access without managing multiple keys.
 */
 const PLATFORM_AGENT_CONFIG: AgentConfig = {
