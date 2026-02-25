@@ -7,7 +7,7 @@ declare namespace Cloudflare {
 	}
 	interface Env {
 		VibecoderStore: KVNamespace;
-		TEMPLATES_REPOSITORY: "https://github.com/cloudflare/vibesdk-templates";
+		TEMPLATES_REPOSITORY: "https://github.com/Boring-Works/vibesdk-templates";
 		ALLOWED_EMAIL: "codyboring@me.com";
 		DISPATCH_NAMESPACE: "boringbuilder-apps";
 		ENABLE_READ_REPLICAS: string;

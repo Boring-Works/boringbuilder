@@ -577,10 +577,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
             return errors;
         } catch (error) {
             this.logger.error("Exception fetching runtime errors:", error);
-            // If fetch fails, initiate redeploy
+            // If fetch fails, initiate redeploy — return empty to avoid feeding synthetic errors to LLM
             this.deployToSandbox();
-            const message = "<runtime errors not available at the moment as preview is not deployed>";
-            return [{ message, timestamp: new Date().toISOString(), level: 0, rawOutput: message }];
+            return [];
         }
     }
 
