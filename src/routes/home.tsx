@@ -204,7 +204,7 @@ export default function Home() {
 							"px-6 p-8 flex flex-col items-center z-10",
 							discoverReady ? "mt-48" : "mt-[20vh] sm:mt-[24vh] md:mt-[28vh]"
 						)}>
-						<h1 className="text-shadow-sm text-shadow-red-200 dark:text-shadow-red-900 text-accent font-medium leading-[1.1] tracking-tight text-5xl w-full mb-2 bg-clip-text bg-gradient-to-r from-text-primary to-text-primary/90" style={{ fontFamily: "'Fraunces', serif" }}>
+						<h1 className="text-shadow-sm text-shadow-slate-300 dark:text-shadow-slate-800 text-accent font-medium leading-[1.1] tracking-tight text-5xl w-full mb-2 bg-clip-text bg-gradient-to-r from-text-primary to-text-primary/90" style={{ fontFamily: "'Fraunces', serif" }}>
 							You already know what you need.
 						</h1>
 						<p className="text-text-tertiary text-base mb-4 w-full">

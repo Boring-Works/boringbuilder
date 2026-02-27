@@ -50,7 +50,7 @@ export function GlobalHeader() {
 								}}
 								className='flex items-center'
 							>
-								<SidebarTrigger className="h-8 w-8 text-text-primary rounded-md hover:bg-orange-50/40 transition-colors duration-200" />
+								<SidebarTrigger className="h-8 w-8 text-text-primary rounded-md hover:bg-accent/10 transition-colors duration-200" />
 								<span
 									className="flex-shrink-0 text-text-primary font-medium text-sm tracking-tight select-none"
 									style={{ fontFamily: "'IBM Plex Mono', monospace", marginLeft: '8px' }}
