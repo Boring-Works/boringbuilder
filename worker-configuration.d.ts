@@ -8,7 +8,7 @@ declare namespace Cloudflare {
 	interface Env {
 		VibecoderStore: KVNamespace;
 		TEMPLATES_REPOSITORY: "https://github.com/Boring-Works/vibesdk-templates";
-		ALLOWED_EMAIL: "codyboring@me.com";
+		ALLOWED_EMAILS: string;
 		DISPATCH_NAMESPACE: "boringbuilder-apps";
 		ENABLE_READ_REPLICAS: string;
 		CLOUDFLARE_AI_GATEWAY: "boringbuilder_gateway";
@@ -71,5 +71,5 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "TEMPLATES_REPOSITORY" | "ALLOWED_EMAIL" | "DISPATCH_NAMESPACE" | "ENABLE_READ_REPLICAS" | "CLOUDFLARE_AI_GATEWAY" | "PLATFORM_MODEL_PROVIDERS" | "PLATFORM_CAPABILITIES" | "CUSTOM_DOMAIN" | "CUSTOM_PREVIEW_DOMAIN" | "MAX_SANDBOX_INSTANCES" | "SANDBOX_INSTANCE_TYPE" | "WORKERS_DEV_HOSTNAME">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "TEMPLATES_REPOSITORY" | "ALLOWED_EMAILS" | "DISPATCH_NAMESPACE" | "ENABLE_READ_REPLICAS" | "CLOUDFLARE_AI_GATEWAY" | "PLATFORM_MODEL_PROVIDERS" | "PLATFORM_CAPABILITIES" | "CUSTOM_DOMAIN" | "CUSTOM_PREVIEW_DOMAIN" | "MAX_SANDBOX_INSTANCES" | "SANDBOX_INSTANCE_TYPE" | "WORKERS_DEV_HOSTNAME">> {}
 }

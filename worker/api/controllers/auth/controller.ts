@@ -31,11 +31,24 @@ import { createLogger } from '../../../logger';
  */
 export class AuthController extends BaseController {
     static logger = createLogger('AuthController');
+
+    /**
+     * Check if an email is in the allowed whitelist.
+     * ALLOWED_EMAILS is a comma-separated string of emails.
+     * Returns true if whitelisting is disabled (empty/unset) or the email is in the list.
+     */
+    static isEmailAllowed(env: Env, email: string): boolean {
+        if (!env.ALLOWED_EMAILS) return true;
+        const allowedList = env.ALLOWED_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+        if (allowedList.length === 0) return true;
+        return allowedList.includes(email.toLowerCase());
+    }
+
     /**
      * Check if OAuth providers are configured
      */
     static hasOAuthProviders(env: Env): boolean {
-        return (!!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET) || 
+        return (!!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET) ||
                (!!env.GITHUB_CLIENT_ID && !!env.GITHUB_CLIENT_SECRET);
     }
     
@@ -60,13 +73,13 @@ export class AuthController extends BaseController {
 
             const validatedData = registerSchema.parse(bodyResult.data);
 
-            if (env.ALLOWED_EMAIL && validatedData.email !== env.ALLOWED_EMAIL) {
+            if (!AuthController.isEmailAllowed(env, validatedData.email)) {
                 return AuthController.createErrorResponse(
-                    'Email Whitelisting is enabled. Please use the allowed email to register.',
+                    'Email whitelisting is enabled. Your email is not on the allowed list.',
                     403
                 );
             }
-            
+
             const authService = new AuthService(env);
             const result = await authService.register(validatedData, request);
             
@@ -115,9 +128,9 @@ export class AuthController extends BaseController {
 
             const validatedData = loginSchema.parse(bodyResult.data);
 
-            if (env.ALLOWED_EMAIL && validatedData.email !== env.ALLOWED_EMAIL) {
+            if (!AuthController.isEmailAllowed(env, validatedData.email)) {
                 return AuthController.createErrorResponse(
-                    'Email Whitelisting is enabled. Please use the allowed email to login.',
+                    'Email whitelisting is enabled. Your email is not on the allowed list.',
                     403
                 );
             }
@@ -330,9 +343,16 @@ export class AuthController extends BaseController {
                 state,
                 request
             );
-            
+
+            // Check email whitelist for OAuth users too
+            if (result.user?.email && !AuthController.isEmailAllowed(env, result.user.email)) {
+                this.logger.warn('OAuth login blocked by email whitelist', { email: result.user.email });
+                const baseUrl = new URL(request.url).origin;
+                return Response.redirect(`${baseUrl}/?error=email_not_allowed`, 302);
+            }
+
             const baseUrl = new URL(request.url).origin;
-            
+
             // Use stored redirect URL or default to home page
             const redirectLocation = result.redirectUrl || `${baseUrl}/`;
             
