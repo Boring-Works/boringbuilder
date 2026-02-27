@@ -52,7 +52,7 @@ export class GitCloneService {
                         fs, dir: '/',
                         message: `Template: ${templateDetails.name}`,
                         author: { 
-                            name: 'BoringBuilder', 
+                            name: 'BoringForge', 
                             email: 'bot@getboring.io',
                             timestamp: appCreatedAt ? Math.floor(appCreatedAt.getTime() / 1000) : 0
                         }
@@ -81,7 +81,7 @@ export class GitCloneService {
                     fs, dir: '/',
                     message: `Template: ${templateDetails.name}\n\nBase template for ${appQuery}`,
                     author: { 
-                        name: 'BoringBuilder', 
+                        name: 'BoringForge', 
                         email: 'bot@getboring.io',
                         timestamp: appCreatedAt ? Math.floor(appCreatedAt.getTime() / 1000) : 0
                     }

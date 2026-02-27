@@ -285,7 +285,7 @@ export class GitHubService {
                 dir: '/',
                 message: 'docs: Add Cloudflare deploy button to README',
                 author: { 
-                    name: 'boringbuilder-bot',
+                    name: 'boringforge-bot',
                     email: 'bot@getboring.io',
                     timestamp: Math.floor(Date.now() / 1000)
                 }

@@ -348,6 +348,13 @@ export function AppSidebar() {
 											) : (
 												// Normal Recent Apps View
 												<>
+													{recentApps.length === 0 && (
+														<SidebarMenuItem>
+															<div className="px-2 py-4 text-xs text-text-tertiary leading-relaxed">
+																Nothing built yet. Describe your first tool above.
+															</div>
+														</SidebarMenuItem>
+													)}
 													{recentApps.map((app) => (
 														<AppMenuItem
 															key={app.id}
@@ -437,8 +444,8 @@ export function AppSidebar() {
 								</>
 							)}
 
-							{/* Boards */}
-							{boards.length > 0 && (
+							{/* Boards section hidden until functional */}
+							{false && boards.length > 0 && (
 								<>
 									<SidebarSeparator />
 									<SidebarGroup>

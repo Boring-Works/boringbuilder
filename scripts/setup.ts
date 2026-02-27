@@ -60,7 +60,7 @@ class SetupManager {
 	});
 
 	constructor() {
-		console.log('BoringBuilder Development Setup');
+		console.log('BoringForge Development Setup');
 		console.log('================================\n');
 	}
 
@@ -1788,7 +1788,7 @@ class SetupManager {
 			}
 		}
 
-		console.log('\nBoringBuilder setup complete. Build something.');
+		console.log('\nBoringForge setup complete. Build something.');
 	}
 
 	private async updateWorkerConfiguration(): Promise<void> {

@@ -66,9 +66,9 @@ export default function Home() {
 
 
 	const placeholderPhrases = useMemo(() => [
-		"todo list app",
-		"F1 fantasy game",
-		"personal finance tracker"
+		"a client intake form that emails me when someone submits",
+		"a property listing page with a countdown timer and registration",
+		"a quote calculator for my contracting business"
 	], []);
 	const [currentPlaceholderPhraseIndex, setCurrentPlaceholderPhraseIndex] = useState(0);
 	const [currentPlaceholderText, setCurrentPlaceholderText] = useState("");
@@ -84,8 +84,8 @@ export default function Home() {
 		limit: 6,
 	});
 
-	// Discover section should appear only when enough apps are available and loading is done
-	const discoverReady = useMemo(() => !loading && (apps?.length ?? 0) > 5, [loading, apps]);
+	// Discover section should appear when at least 1 app is available and loading is done
+	const discoverReady = useMemo(() => !loading && (apps?.length ?? 0) >= 1, [loading, apps]);
 
 	const handleCreateApp = (query: string, mode: ProjectType) => {
 		if (query.length > MAX_AGENT_QUERY_LENGTH) {
@@ -204,9 +204,12 @@ export default function Home() {
 							"px-6 p-8 flex flex-col items-center z-10",
 							discoverReady ? "mt-48" : "mt-[20vh] sm:mt-[24vh] md:mt-[28vh]"
 						)}>
-						<h1 className="text-shadow-sm text-shadow-red-200 dark:text-shadow-red-900 text-accent font-medium leading-[1.1] tracking-tight text-5xl w-full mb-4 bg-clip-text bg-gradient-to-r from-text-primary to-text-primary/90">
-							What should we build today?
+						<h1 className="text-shadow-sm text-shadow-red-200 dark:text-shadow-red-900 text-accent font-medium leading-[1.1] tracking-tight text-5xl w-full mb-2 bg-clip-text bg-gradient-to-r from-text-primary to-text-primary/90" style={{ fontFamily: "'Fraunces', serif" }}>
+							You already know what you need.
 						</h1>
+						<p className="text-text-tertiary text-base mb-4 w-full">
+							Describe it in plain English. We'll build and deploy it.
+						</p>
 
 						<form
 							method="POST"
@@ -233,7 +236,7 @@ export default function Home() {
 									className="w-full resize-none ring-0 z-20 outline-0 placeholder:text-text-primary/60 text-text-primary"
 									name="query"
 									value={query}
-									placeholder={`Create a ${currentPlaceholderText}`}
+									placeholder={`Build me ${currentPlaceholderText}`}
 									ref={textareaRef}
 									onChange={(e) => {
 										setQuery(e.target.value);
@@ -302,7 +305,7 @@ export default function Home() {
 							<div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-bg-4/50 dark:bg-bg-2/50 border border-accent/20 dark:border-accent/30 shadow-sm">
 								<Info className="size-4 text-accent flex-shrink-0 mt-0.5" />
 								<p className="text-xs text-text-tertiary leading-relaxed">
-									<span className="font-medium text-text-secondary">Images Beta:</span> Images guide app layout and design but may not be replicated exactly. The coding agent cannot access images directly for app assets.
+									<span className="font-medium text-text-secondary">Images:</span> Images guide app layout and design but may not be replicated exactly. The coding agent cannot access images directly for app assets.
 								</p>
 							</div>
 						</motion.div>
@@ -321,8 +324,11 @@ export default function Home() {
 							className={clsx('max-w-6xl mx-auto px-4 z-10', images.length > 0 ? 'mt-10' : 'mt-16 mb-8')}
 						>
 							<div className='flex flex-col items-start'>
-								<h2 className="text-2xl font-medium text-text-secondary/80">Discover Apps built by the community</h2>
-								<div ref={discoverLinkRef} className="text-md font-light mb-4 text-text-tertiary hover:underline underline-offset-4 select-text cursor-pointer" onClick={() => navigate('/discover')} >View All</div>
+								<h2 className="text-2xl font-medium text-text-secondary/80">See what's been shipped</h2>
+								<div ref={discoverLinkRef} className="text-md font-light mb-4 text-text-tertiary hover:underline underline-offset-4 select-text cursor-pointer" onClick={() => navigate('/discover')} >View All →</div>
+								{(apps?.length ?? 0) < 6 && (
+									<p className="text-sm text-text-tertiary/60 mb-4 italic">Early days. These are the first things people shipped.</p>
+								)}
 								<motion.div
 									layout
 									transition={{ duration: 0.4 }}

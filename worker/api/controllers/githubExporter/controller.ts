@@ -313,7 +313,7 @@ export class GitHubExporterController extends BaseController {
                     description: exportData.description,
                     isPrivate: exportData.isPrivate || false,
                     token: tokenResult.accessToken,
-                    username: 'boringbuilder-bot'
+                    username: 'boringforge-bot'
                 });
 
                 if (!result.success) {

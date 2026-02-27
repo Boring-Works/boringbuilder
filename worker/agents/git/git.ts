@@ -42,7 +42,7 @@ export class GitVersionControl {
 
     constructor(sql: SqlExecutor, author?: { name: string; email: string }) {
         this.fs = new SqliteFS(sql);
-        this.author = author || { name: 'BoringBuilder', email: 'bot@getboring.io' };
+        this.author = author || { name: 'BoringForge', email: 'bot@getboring.io' };
         
         // Initialize SQLite table synchronously
         this.fs.init();
