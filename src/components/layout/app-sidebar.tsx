@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-	Users,
 	Settings,
 	Plus,
 	ChevronRight,
@@ -9,7 +8,6 @@ import {
 	Lock,
 	Users2,
 	Bookmark,
-	// LayoutGrid,
 	Compass,
 } from 'lucide-react';
 import './sidebar-overrides.css';
@@ -35,7 +33,6 @@ import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import {
 	Tooltip,
-	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
@@ -50,15 +47,6 @@ interface App {
 	updatedAtFormatted?: string;
 	visibility: 'private' | 'team' | 'board' | 'public';
 	isFavorite?: boolean;
-}
-
-interface Board {
-	id: string;
-	name: string;
-	slug: string;
-	memberCount: number;
-	appCount: number;
-	iconUrl?: string | null;
 }
 
 // Reusable AppMenuItem component for consistent app display
@@ -150,10 +138,6 @@ export function AppSidebar() {
 	const { user } = useAuth();
 	const navigate = useNavigate();
 	const [searchQuery, setSearchQuery] = React.useState('');
-	const [expandedGroups, setExpandedGroups] = React.useState<string[]>([
-		'apps',
-		'boards',
-	]);
 	const { state, setOpen } = useSidebar();
 	const isCollapsed = state === 'collapsed';
 
@@ -161,8 +145,6 @@ export function AppSidebar() {
 	const { apps: recentApps, moreAvailable } = useRecentApps();
 	const { apps: favoriteApps } = useFavoriteApps();
 	const { apps: allApps, loading: allAppsLoading } = useApps();
-
-	const boards: Board[] = []; // Remove mock boards
 
 	// Search functionality - filter all apps based on search query
 	const searchResults = React.useMemo(() => {
@@ -186,14 +168,6 @@ export function AppSidebar() {
 			case 'public':
 				return <Globe className="h-3 w-3" />;
 		}
-	};
-
-	const toggleGroup = (group: string) => {
-		setExpandedGroups((prev) =>
-			prev.includes(group)
-				? prev.filter((g) => g !== group)
-				: [...prev, group],
-		);
 	};
 
 	if (!user) return;
@@ -256,8 +230,7 @@ export function AppSidebar() {
 							<div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-bg-2 to-transparent pointer-events-none z-10"></div>
 							{/* Navigation */}
 							<SidebarGroup>
-								{expandedGroups.includes('apps') && (
-									<SidebarGroupContent>
+								<SidebarGroupContent>
 										{/* Search */}
 										<div className="relative bg-bg-3 mb-4 mt-2">
 											<Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
@@ -399,7 +372,6 @@ export function AppSidebar() {
 											)}
 										</SidebarMenu>
 									</SidebarGroupContent>
-								)}
 							</SidebarGroup>
 
 							{/* Favorites */}
@@ -444,132 +416,6 @@ export function AppSidebar() {
 								</>
 							)}
 
-							{/* Boards section hidden until functional */}
-							{false && boards.length > 0 && (
-								<>
-									<SidebarSeparator />
-									<SidebarGroup>
-										<SidebarGroupLabel
-											className={cn(
-												'flex items-center cursor-pointer hover:text-text-primary transition-colors',
-												isCollapsed
-													? 'justify-center px-0'
-													: 'justify-between',
-											)}
-											onClick={() =>
-												toggleGroup('boards')
-											}
-										>
-											{isCollapsed ? (
-												<TooltipProvider
-													delayDuration={0}
-												>
-													<Tooltip>
-														<TooltipTrigger>
-															<Users className="h-4 w-4" />
-														</TooltipTrigger>
-														<TooltipContent
-															side="right"
-															className="ml-2"
-														>
-															My Boards
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											) : (
-												<>
-													<div className="flex items-center gap-2">
-														<Users className="h-4 w-4" />
-														<span>My Boards</span>
-													</div>
-													<ChevronRight
-														className={cn(
-															'h-4 w-4 transition-transform',
-															expandedGroups.includes(
-																'boards',
-															) && 'rotate-90',
-														)}
-													/>
-												</>
-											)}
-										</SidebarGroupLabel>
-										{expandedGroups.includes('boards') && (
-											<SidebarGroupContent>
-												<SidebarMenu>
-													{boards.map((board) => (
-														<SidebarMenuItem
-															key={board.id}
-														>
-															<SidebarMenuButton
-																onClick={() =>
-																	navigate(
-																		`/boards/${board.slug}`,
-																	)
-																}
-																tooltip={
-																	board.name
-																}
-																className="board-item-button"
-															>
-																<div
-																	className={cn(
-																		'rounded-lg flex-shrink-0 flex items-center justify-center transition-colors',
-																		'h-8 w-8',
-																		isCollapsed
-																			? 'bg-sidebar-accent'
-																			: 'bg-sidebar-accent/50',
-																	)}
-																>
-																	<Users2 className="h-4 w-4 text-sidebar-accent-foreground" />
-																</div>
-																{!isCollapsed && (
-																	<div className="flex-1 min-w-0">
-																		<p className="text-sm font-medium truncate">
-																			{
-																				board.name
-																			}
-																		</p>
-																		<p className="text-xs text-text-tertiary truncate">
-																			{
-																				board.memberCount
-																			}{' '}
-																			members
-																			•{' '}
-																			{
-																				board.appCount
-																			}{' '}
-																			apps
-																		</p>
-																	</div>
-																)}
-															</SidebarMenuButton>
-														</SidebarMenuItem>
-													))}
-													<SidebarMenuItem>
-														<SidebarMenuButton
-															onClick={() =>
-																navigate(
-																	'/boards',
-																)
-															}
-															tooltip="Browse all boards"
-															className="text-text-tertiary hover:text-text-primary view-all-button"
-														>
-															<Plus className="h-4 w-4" />
-															{!isCollapsed && (
-																<span className="font-medium text-text-primary/80 ml-2">
-																	Browse all
-																	boards
-																</span>
-															)}
-														</SidebarMenuButton>
-													</SidebarMenuItem>
-												</SidebarMenu>
-											</SidebarGroupContent>
-										)}
-									</SidebarGroup>
-								</>
-							)}
 						</ScrollArea>
 					)}
 				</SidebarContent>
