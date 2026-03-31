@@ -51,6 +51,7 @@ export function getPlatformEnabledProviders(env: Env): string[] {
 		'anthropic',
 		'openai',
 		'google-ai-studio',
+		'google-vertex-ai',
 		'deepseek',
 		'openrouter',
 		'cerebras',

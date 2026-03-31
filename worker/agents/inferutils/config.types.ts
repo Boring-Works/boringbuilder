@@ -495,11 +495,6 @@ export interface AgentConstraintConfig {
     enabled: boolean;
 }
 
-export interface AgentConstraintConfig {
-    allowedModels: Set<AIModels>;
-    enabled: boolean;
-}
-
 export interface ModelConfig {
     name: AIModels | string;
     reasoning_effort?: ReasoningEffort;

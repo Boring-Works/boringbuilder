@@ -297,6 +297,8 @@ export async function getConfigurationForModel(
                 return { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKey: env.GOOGLE_AI_STUDIO_API_KEY, useProviderEndpoint: true };
             case 'anthropic':
                 return { baseURL: 'https://api.anthropic.com/v1/', apiKey: env.ANTHROPIC_API_KEY, useProviderEndpoint: true };
+            case 'openai':
+                return { baseURL: 'https://api.openai.com/v1', apiKey: env.OPENAI_API_KEY, useProviderEndpoint: true };
             default:
                 break;
         }
@@ -562,6 +564,14 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         await RateLimitService.enforceLLMCallsRateLimit(env, userConfig.security.rateLimit, metadata.userId, modelName)
         const modelConfig = AI_MODEL_CONFIG[modelName as AIModels];
 
+        // Guard: skip API call for disabled models, use empty response
+        if (!modelConfig || modelConfig.provider === 'None') {
+            console.warn(`[Inference] Model "${modelName}" is disabled or unknown. Skipping API call.`);
+            return schema
+                ? { object: undefined as never, toolCallContext }
+                : { string: '', toolCallContext };
+        }
+
         const { apiKey, baseURL, defaultHeaders, useProviderEndpoint } = await getConfigurationForModel(
             modelConfig,
             env,
@@ -789,9 +799,8 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                     const delta = (event as ChatCompletionChunk).choices[0]?.delta;
                     
                     // Provider-specific logging
-                    const provider = modelName.split('/')[0];
-                    if (delta?.tool_calls && (provider === 'google-ai-studio' || provider === 'gemini')) {
-                        console.log(`[PROVIDER_DEBUG] ${provider} tool_calls delta:`, JSON.stringify(delta.tool_calls, null, 2));
+                    if (delta?.tool_calls && modelConfig?.provider === 'google-ai-studio') {
+                        console.log(`[PROVIDER_DEBUG] google-ai-studio tool_calls delta:`, JSON.stringify(delta.tool_calls, null, 2));
                     }
                     
                     if (delta?.tool_calls) {

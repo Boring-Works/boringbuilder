@@ -93,7 +93,7 @@ Config at `worker/agents/inferutils/config.ts`. Two modes selected by `PLATFORM_
 | blueprint | Gemini 3 Pro Preview | high | 20000 | 1.0 | Gemini 2.5 Flash |
 | projectSetup | Grok 4.1 Fast | medium | 8000 | 1 | Gemini 2.5 Pro |
 | phaseGeneration | Gemini 3 Flash Preview | medium | 8000 | 1 | OpenAI 5 Mini |
-| phaseImplementation | Gemini 3 Flash Preview | low | 48000 | 1 | OpenAI 5 Mini |
+| phaseImplementation | Gemini 3 Flash Preview | low | 48000 | 1 | Gemini 2.5 Pro |
 | conversationalResponse | Grok 4.1 Fast | low | 4000 | 1 | Gemini 2.5 Flash |
 | deepDebugger | Grok 4.1 Fast | high | 8000 | 1 | Gemini 2.5 Pro |
 | fileRegeneration | Grok 4.1 Fast (non-reasoning) | low | 16000 | 0.0 | Grok Code Fast 1 |
