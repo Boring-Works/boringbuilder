@@ -128,7 +128,7 @@ ${error}`);
                 messages,
                 agentActionName: "projectSetup",
                 context: this.inferenceContext,
-                modelName: error? AIModels.GEMINI_2_5_FLASH : undefined,
+                modelName: error? AIModels.WAI_GLM_47_FLASH : undefined,
             });
 
             if (!results || !results.string) {

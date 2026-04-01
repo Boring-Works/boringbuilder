@@ -171,7 +171,7 @@ export async function executeInference<T extends z.AnyZodObject>(   {
                 actionKey: agentActionName,
                 format,
                 maxTokens,
-                modelName: useCheaperModel ? AIModels.GEMINI_2_5_FLASH : modelName,
+                modelName: useCheaperModel ? AIModels.WAI_GLM_47_FLASH : modelName,
                 formatOptions: {
                     debug: false,
                 },
