@@ -174,7 +174,7 @@ export class AgenticProjectBuilderOperation extends AgentOperationWithTools<
                 ? '- UI detected: Use deploy_preview to verify runtime; then run_analysis for quick feedback.'
                 : '',
             isPresentationProject
-                ? '- Presentation mode: Use deploy_preview to sync slides. NO run_analysis needed. Focus on beautiful JSON slides, ask user for feedback.'
+                ? '- Presentation mode: Use deploy_preview to sync slides and verify rendering. Use run_analysis after deploy to check for JSON syntax issues. Focus on beautiful, well-structured slides.'
                 : '',
             hasMD && !hasTSX
                 ? '- Documents detected without UI: This is STATIC content - generate files in docs/, NO deploy_preview needed.'

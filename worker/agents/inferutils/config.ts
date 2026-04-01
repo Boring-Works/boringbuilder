@@ -10,10 +10,10 @@ import { env } from 'cloudflare:workers';
 // Common configs - these are good defaults
 const COMMON_AGENT_CONFIGS = {
     screenshotAnalysis: {
-        name: AIModels.DISABLED,
+        name: AIModels.WAI_KIMI_K2_5,
         reasoning_effort: 'medium' as const,
         max_tokens: 8000,
-        temperature: 1,
+        temperature: 0.2,
         fallbackModel: AIModels.WAI_GLM_47_FLASH,
     },
     realtimeCodeFixer: {
