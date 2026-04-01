@@ -319,9 +319,12 @@ export async function getConfigurationForModel(
     //   The provider key goes in Authorization, gateway token in cf-aig-authorization
     // - Provider has NO own API key (apiKey == gatewayToken): use provider-specific endpoint
     //   e.g. /deepseek/, /openrouter/, /grok/ — gateway injects stored credentials from dashboard
+    // - EXCEPTION: workers-ai uses /compat endpoint with full model ID in body (OpenAI SDK format)
+    //   The provider-specific /workers-ai/ endpoint expects model in URL path, not body
     let providerForcedOverride: AIGatewayProviders | undefined;
     const hasOwnProviderKey = gatewayToken && apiKey !== gatewayToken;
-    const useProviderEndpoint = !hasOwnProviderKey && modelConfig.provider !== 'None';
+    const isWorkersAI = modelConfig.provider === 'workers-ai';
+    const useProviderEndpoint = !isWorkersAI && !hasOwnProviderKey && modelConfig.provider !== 'None';
 
     if (useProviderEndpoint) {
         providerForcedOverride = modelConfig.provider as AIGatewayProviders;
@@ -604,7 +607,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         const client = new OpenAI({ apiKey, baseURL: baseURL, defaultHeaders: { ...defaultHeaders, ...sessionHeaders } });
 
         // Providers that don't support OpenAI's structured output (zodResponseFormat)
-        const supportsStructuredOutput = !['deepseek', 'grok'].includes(modelConfig.provider);
+        const supportsStructuredOutput = !['deepseek', 'grok', 'workers-ai'].includes(modelConfig.provider);
         const schemaObj =
             schema && schemaName && !format && supportsStructuredOutput
                 ? { response_format: zodResponseFormat(schema, schemaName) }
@@ -723,12 +726,17 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         let response: OpenAI.ChatCompletion | OpenAI.ChatCompletionChunk | Stream<OpenAI.ChatCompletionChunk>;
         try {
             // Provider-specific token parameter handling
+            const isWorkersAI = modelConfig.provider === 'workers-ai';
             const isDeepSeek = modelConfig.provider === 'deepseek';
             const isGrok = modelConfig.provider === 'grok';
             let tokenLimit: number;
             let tokenParam: { max_tokens: number } | { max_completion_tokens: number };
 
-            if (isDeepSeek) {
+            if (isWorkersAI) {
+                // Workers AI uses max_tokens via OpenAI-compatible endpoint
+                tokenLimit = maxTokens || 32000;
+                tokenParam = { max_tokens: tokenLimit };
+            } else if (isDeepSeek) {
                 // DeepSeek uses max_tokens; thinking/reasoner: 64K, non-thinking: 8K
                 tokenLimit = deepSeekThinking
                     ? (maxTokens || 65536)
