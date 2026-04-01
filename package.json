@@ -92,7 +92,7 @@
 		"cross-spawn": "^7.0.6",
 		"date-fns": "^4.1.0",
 		"diff": "^8.0.2",
-		"drizzle-orm": "^0.44.7",
+		"drizzle-orm": "^0.45.2",
 		"embla-carousel-react": "^8.6.0",
 		"esbuild": "^0.27.1",
 		"eslint-import-resolver-typescript": "^4.4.4",
@@ -169,7 +169,7 @@
 		"typescript-eslint": "^8.49.0",
 		"vite": "npm:rolldown-vite@7.1.13",
 		"vitest": "^3.2.4",
-		"wrangler": "4.50.0"
+		"wrangler": "4.78.0"
 	},
 	"prettier": {
 		"singleQuote": true,

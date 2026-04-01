@@ -580,6 +580,11 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         );
         console.log(`baseUrl: ${baseURL}, modelName: ${modelName}, useProviderEndpoint: ${useProviderEndpoint}`);
 
+        // Add session affinity for Workers AI prompt caching (no-op for other providers)
+        const sessionHeaders = modelConfig.provider === 'workers-ai'
+            ? { 'x-session-affinity': metadata.agentId }
+            : {};
+
         // Remove [*.] from model name
         modelName = modelName.replace(/\[.*?\]/, '');
 
@@ -596,7 +601,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             }
         }
 
-        const client = new OpenAI({ apiKey, baseURL: baseURL, defaultHeaders });
+        const client = new OpenAI({ apiKey, baseURL: baseURL, defaultHeaders: { ...defaultHeaders, ...sessionHeaders } });
 
         // Providers that don't support OpenAI's structured output (zodResponseFormat)
         const supportsStructuredOutput = !['deepseek', 'grok'].includes(modelConfig.provider);
@@ -794,7 +799,8 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 const byIndex = new Map<number, ToolAccumulatorEntry>();
                 const byId = new Map<string, ToolAccumulatorEntry>();
                 const orderCounterRef = { value: 0 };
-                
+                let lastFinishReason: string | null = null;
+
                 for await (const event of response) {
                     const delta = (event as ChatCompletionChunk).choices[0]?.delta;
                     
@@ -817,12 +823,18 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                     content += delta?.content || '';
                     const slice = content.slice(streamIndex);
                     const finishReason = (event as ChatCompletionChunk).choices[0]?.finish_reason;
+                    if (finishReason != null) lastFinishReason = finishReason;
                     if (slice.length >= stream.chunk_size || finishReason != null) {
                         stream.onChunk(slice);
                         streamIndex += slice.length;
                     }
                 }
-                
+
+                // Detect truncation: finish_reason 'length' means max_tokens was hit
+                if (lastFinishReason === 'length') {
+                    console.warn(`[TRUNCATION] Model output truncated by max_tokens limit. Action: ${actionKey}, Model: ${modelName}, Content length: ${content.length} chars`);
+                }
+
                 // Assemble toolCalls with preference for index ordering, else first-seen order
                 const assembled = assembleToolCalls(byIndex, byId);
                 const dropped = assembled.filter(tc => !tc.function.name || tc.function.name.trim() === '');
@@ -872,9 +884,12 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 console.warn(`[TOOL_CALL_WARNING] Dropping ${droppedNonStream.length} non-stream tool_call(s) without function name`, droppedNonStream);
             }
             toolCalls = allToolCalls.filter(tc => tc.function.name && tc.function.name.trim() !== '');
-            // Also print the total number of tokens used in the prompt
-            const totalTokens = (response as OpenAI.ChatCompletion).usage?.total_tokens;
+            const completion = response as OpenAI.ChatCompletion;
+            const totalTokens = completion.usage?.total_tokens;
             console.log(`Total tokens used in prompt: ${totalTokens}`);
+            if (completion.choices[0]?.finish_reason === 'length') {
+                console.warn(`[TRUNCATION] Model output truncated by max_tokens limit. Action: ${actionKey}, Model: ${modelName}, Content length: ${content.length} chars, Tokens: ${totalTokens}`);
+            }
         }
 
         const assistantMessage = { role: "assistant" as MessageRole, content, tool_calls: toolCalls };

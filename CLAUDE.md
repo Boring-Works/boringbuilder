@@ -15,7 +15,7 @@ BoringForge is an AI-powered full-stack application generation platform built on
 - Frontend: React 19.2, TypeScript 5.9, Vite (rolldown-vite 7.x), TailwindCSS 4, React Router v7
 - Backend: Cloudflare Workers, Durable Objects, D1 (SQLite), Hono
 - AI/LLM: Multi-provider via CF AI Gateway (Google, xAI, OpenAI, Anthropic, DeepSeek, OpenRouter)
-- ORM: Drizzle 0.44, Agents SDK 0.2, OpenAI SDK 5.23
+- ORM: Drizzle 0.45, Agents SDK 0.2, OpenAI SDK 5.23
 - WebSocket: PartySocket for real-time communication
 - Sandbox: Custom container service (4 vCPU, 12GB RAM)
 - Git: isomorphic-git with SQLite filesystem

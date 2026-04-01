@@ -153,6 +153,12 @@ export async function executeInference<T extends z.AnyZodObject>(   {
     let useCheaperModel = false;
 
     for (let attempt = 0; attempt < retryLimit; attempt++) {
+        // Check abort before each attempt to avoid wasting an LLM call after cancellation
+        if (context.abortSignal?.aborted) {
+            logger.info(`${agentActionName} aborted before attempt ${attempt + 1}, skipping`);
+            return null;
+        }
+
         try {
             logger.info(`Starting ${agentActionName} operation with model ${modelName} (attempt ${attempt + 1}/${retryLimit})`);
 
@@ -233,6 +239,12 @@ export async function executeInference<T extends z.AnyZodObject>(   {
                 const delay = backoffMs(attempt);
                 logger.info(`Retrying in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
+
+                // Re-check abort after backoff -- user may have cancelled during the wait
+                if (context.abortSignal?.aborted) {
+                    logger.info(`${agentActionName} aborted during backoff, stopping retries`);
+                    return null;
+                }
             }
         }
     }
