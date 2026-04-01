@@ -229,8 +229,14 @@ export async function buildGatewayUrl(
     
     // Build the url via bindings
     const gateway = env.AI.gateway(env.CLOUDFLARE_AI_GATEWAY);
-    const baseUrl = providerOverride ? await gateway.getUrl(providerOverride) : `${await gateway.getUrl()}compat`;
-    return baseUrl;
+    if (providerOverride) {
+        return await gateway.getUrl(providerOverride);
+    }
+    // For Workers AI and other /compat users: append /compat to base gateway URL
+    const gatewayBaseUrl = (await gateway.getUrl()).replace(/\/+$/, '');
+    const compatUrl = `${gatewayBaseUrl}/compat`;
+    console.log(`[Gateway] Using compat endpoint: ${compatUrl}`);
+    return compatUrl;
 }
 
 function isValidApiKey(apiKey: string): boolean {
@@ -581,7 +587,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             metadata.userId,
             runtimeOverrides,
         );
-        console.log(`baseUrl: ${baseURL}, modelName: ${modelName}, useProviderEndpoint: ${useProviderEndpoint}`);
+        console.log(`[Inference] baseUrl: ${baseURL}, modelName: ${modelName}, provider: ${modelConfig.provider}, useProviderEndpoint: ${useProviderEndpoint}, hasApiKey: ${!!apiKey}`);
 
         // Add session affinity for Workers AI prompt caching (no-op for other providers)
         const sessionHeaders = modelConfig.provider === 'workers-ai'
