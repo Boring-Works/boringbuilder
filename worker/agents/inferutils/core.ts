@@ -338,13 +338,27 @@ export async function getConfigurationForModel(
 
     const baseURL = await buildGatewayUrl(env, providerForcedOverride, gatewayOverride);
 
-    // AI Gateway wholesaling: provider key in Authorization + gateway token in cf-aig-authorization
-    // Only needed when using /compat with a real provider key (not when using provider-specific endpoint)
-    const defaultHeaders = hasOwnProviderKey ? {
-        'cf-aig-authorization': `Bearer ${gatewayToken}`,
-    } : undefined;
+    // AI Gateway auth headers:
+    // - Workers AI via /compat: gateway token in cf-aig-authorization, dummy apiKey for OpenAI SDK
+    // - BYOK provider via /compat: provider key in Authorization, gateway token in cf-aig-authorization
+    // - Provider-specific endpoint: no extra headers (gateway injects stored creds)
+    let defaultHeaders: Record<string, string> | undefined;
+    let effectiveApiKey = apiKey;
 
-    return { baseURL, apiKey, defaultHeaders, useProviderEndpoint };
+    if (isWorkersAI) {
+        // Workers AI through /compat needs cf-aig-authorization for the gateway
+        // OpenAI SDK requires a non-empty apiKey but it's not used for auth
+        defaultHeaders = {
+            'cf-aig-authorization': `Bearer ${gatewayToken}`,
+        };
+        effectiveApiKey = gatewayToken || 'workers-ai';
+    } else if (hasOwnProviderKey) {
+        defaultHeaders = {
+            'cf-aig-authorization': `Bearer ${gatewayToken}`,
+        };
+    }
+
+    return { baseURL, apiKey: effectiveApiKey, defaultHeaders, useProviderEndpoint };
 }
 
 type InferArgsBase = {
