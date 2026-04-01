@@ -190,11 +190,17 @@ export class ModelConfigController extends BaseController {
                 }
             }
 
+            // If no model name provided, use the current default for this agent action
             if (!modelConfig.name) {
-                return ModelConfigController.createErrorResponse<ModelConfigUpdateData>(
-                    'Model name is required',
-                    400
-                );
+                const defaultConfig = AGENT_CONFIG[agentAction as AgentActionKey];
+                if (defaultConfig) {
+                    modelConfig.name = defaultConfig.name;
+                } else {
+                    return ModelConfigController.createErrorResponse<ModelConfigUpdateData>(
+                        'Model name is required',
+                        400
+                    );
+                }
             }
 
             const modelConfigService = new ModelConfigService(env);

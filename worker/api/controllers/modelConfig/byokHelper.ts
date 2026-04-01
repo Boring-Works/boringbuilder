@@ -48,6 +48,7 @@ export function getPlatformEnabledProviders(env: Env): string[] {
 	const enabledProviders: string[] = [];
 
 	const providerList = [
+		'workers-ai',
 		'anthropic',
 		'openai',
 		'google-ai-studio',

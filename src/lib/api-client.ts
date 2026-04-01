@@ -381,8 +381,6 @@ class ApiClient {
                             throw new SecurityError(errorData.type, errorData.message);
                         }
                     }
-                    console.log("Came here");
-
                     throw new ApiError(
                         response.status,
                         response.statusText,
@@ -784,18 +782,6 @@ class ApiClient {
 				...(tempConfig && { tempConfig }),
 			},
 		});
-	}
-
-	/**
-	 * Reset all model configurations
-	 */
-	async resetAllConfigs(): Promise<ApiResponse<ModelConfigResetData>> {
-		return this.request<ModelConfigResetData>(
-			'/api/model-configs/reset-all',
-			{
-				method: 'POST',
-			},
-		);
 	}
 
 	/**

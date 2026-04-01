@@ -279,7 +279,7 @@ export default function SettingsPage() {
 			setSavingConfigs(true);
 			const response = await apiClient.resetAllModelConfigs();
 			toast.success(
-				`${response.data?.resetCount} configurations reset to defaults`,
+				`${response.data?.resetCount ?? 0} configurations reset to defaults`,
 			);
 			await loadModelConfigs();
 		} catch (error) {

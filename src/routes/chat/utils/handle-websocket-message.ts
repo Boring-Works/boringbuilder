@@ -380,7 +380,6 @@ export function createWebSocketMessageHandler(deps: HandleMessageDeps) {
             }
 
             case 'conversation_state': {
-                if (message.type !== 'conversation_state') break;
                 const { state, deepDebugSession } = message;
                 const history: ReadonlyArray<ConversationMessage> = state?.runningHistory ?? [];
                 logger.debug('Received conversation_state with messages:', history.length, 'deepDebugSession:', deepDebugSession);
