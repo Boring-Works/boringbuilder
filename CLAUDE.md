@@ -108,8 +108,11 @@ Config at `worker/agents/inferutils/config.ts`. Two modes selected by `PLATFORM_
 | realtimeCodeFixer | GLM 4.7 Flash | low | 32000 | 0.2 | Qwen3 30B |
 | templateSelection | GLM 4.7 Flash | -- | 2000 | 0.0 | Granite 4.0 Micro |
 | fastCodeFixer | GLM 4.7 Flash | low | 64000 | 0.0 | Qwen2.5 Coder 32B |
+| screenshotAnalysis | Kimi K2.5 | medium | 8000 | 0.2 | GLM 4.7 Flash |
 
-**Default Config (no env var -- Gemini only):** All operations use Gemini 3 Flash Preview or Gemini 2.5 Flash.
+**Default Config (no env var):** Mirrors platform config -- all Workers AI models. Safe fallback if PLATFORM_MODEL_PROVIDERS is unset.
+
+**Known Issue:** Workers AI builds may stall. See DEBT.md D9. Some models may not fully support the OpenAI /compat format through AI Gateway. If builds hang, check AI Gateway logs.
 
 Provider: `workers-ai` (no external API keys needed, runs on CF GPUs)
 
@@ -251,11 +254,11 @@ Edit `worker/agents/operations/UserConversationProcessor.ts`
 
 | File | Lines | Note |
 |------|-------|------|
-| `worker/agents/core/behaviors/base.ts` | 1901 | Largest agent file |
+| `worker/agents/core/behaviors/base.ts` | 1978 | Largest agent file (includes screenshot analysis) |
 | `worker/agents/inferutils/schemaFormatters.ts` | 1311 | Data transforms |
 | `src/lib/api-client.ts` | 1199 | Centralized API layer |
 | `src/routes/app/index.tsx` | 1113 | App route |
 | `worker/agents/prompts.ts` | 1108 | Prompt storage |
 | `src/routes/chat/utils/handle-websocket-message.ts` | 1037 | WS handler |
-| `worker/agents/inferutils/core.ts` | 1020 | Inference engine |
+| `worker/agents/inferutils/core.ts` | 1058 | Inference engine (Workers AI /compat routing) |
 | `scripts/deploy.ts` | 2128 | Deploy orchestrator |
