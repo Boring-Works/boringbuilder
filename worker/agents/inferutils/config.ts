@@ -112,7 +112,7 @@ const PLATFORM_AGENT_CONFIG: AgentConfig = {
         reasoning_effort: 'high',
         max_tokens: 48000,
         temperature: 1,
-        fallbackModel: AIModels.WAI_NEMOTRON_3_120B,
+        fallbackModel: AIModels.WAI_GPT_OSS_120B,
     },
 };
 
@@ -178,7 +178,7 @@ const DEFAULT_AGENT_CONFIG: AgentConfig = {
         reasoning_effort: 'high',
         max_tokens: 48000,
         temperature: 1,
-        fallbackModel: AIModels.WAI_NEMOTRON_3_120B,
+        fallbackModel: AIModels.WAI_GPT_OSS_120B,
     },
 };
 
