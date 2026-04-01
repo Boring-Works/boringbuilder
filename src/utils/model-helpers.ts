@@ -19,6 +19,9 @@ export function getProviderInfo(modelValue?: string): ProviderInfo {
 	if (!modelValue) return { name: 'Default', color: 'bg-bg-3 text-text-tertiary' };
 
 	// Check multi-segment prefixes first to avoid incorrect substring matches
+	if (modelValue.startsWith('workers-ai/')) {
+		return { name: 'Workers AI', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400' };
+	}
 	if (modelValue.startsWith('openrouter/')) {
 		return { name: 'OpenRouter', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' };
 	}
