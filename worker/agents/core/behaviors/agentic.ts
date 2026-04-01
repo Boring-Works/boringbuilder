@@ -45,7 +45,7 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
 
     // Conversation sync tracking
     private toolCallCounter: number = 0;
-    private readonly COMPACTIFY_CHECK_INTERVAL = 9; // Check compactification every 9 tool calls
+    private readonly COMPACTIFY_CHECK_INTERVAL = 4; // Compact early to reduce context bloat (was 9)
 
     /**
      * Initialize the code generator with project blueprint and template
