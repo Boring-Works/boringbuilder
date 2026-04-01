@@ -28,7 +28,14 @@ BoringForge is an AI-powered full-stack application generation platform built on
 - Worker: `boringbuilder` at `build.getboring.io`
 - Also on: `boringbuilder.codyboring.workers.dev`
 - Deploy: `bun --env-file .prod.vars scripts/deploy.ts`
+- Auto-deploy: pushes to main trigger automatic CF deployment (~30s)
+- Lockfile must be committed with dep changes (--frozen-lockfile in CI)
 - CF Account: `94bdc287cd4e0622b68f9e18e406ae66`
+
+## WARNING: Two Repos Exist
+- `~/Projects/boringbuilder` (Boring-Works/boringbuilder) -- THIS IS PRODUCTION
+- `~/CodyML/projects/BoringTooling/boringbuild` (Boring-Works/vibesdk) -- STALE FORK, DO NOT USE
+- Both deploy to the same CF worker name. Using the wrong one overwrites production.
 
 ## Project Structure
 
@@ -106,6 +113,13 @@ Config at `worker/agents/inferutils/config.ts`. Two modes selected by `PLATFORM_
 
 Provider: `workers-ai` (no external API keys needed, runs on CF GPUs)
 
+## Workers AI Routing (Critical)
+- Workers AI models MUST use /compat gateway endpoint, NOT provider-specific endpoint
+- Model IDs keep full prefix: `workers-ai/@cf/moonshotai/kimi-k2.5` (no stripping)
+- Workers AI does NOT support: zodResponseFormat (structured output), max_completion_tokens, reasoning_effort
+- Workers AI uses: max_tokens, temperature, standard OpenAI chat completions format
+- All cheap retry fallbacks use WAI_GLM_47_FLASH (never Gemini -- no API key)
+
 ## Core Architecture
 
 **Durable Objects Pattern:**
@@ -160,8 +174,8 @@ Edit `worker/agents/operations/UserConversationProcessor.ts`
 **Deep Debugger:**
 - Location: `worker/agents/operations/DeepDebugger.ts` (238 lines)
 - Tool: `worker/agents/tools/toolkit/deep-debugger.ts`
-- Platform model: Grok 4.1 Fast (reasoning_effort: high, 8k tokens)
-- Fallback: Gemini 2.5 Pro
+- Platform model: Nemotron 3 120B (reasoning_effort: high, 8k tokens)
+- Fallback: DeepSeek R1 Distill
 - Cannot run during code generation (checked via isCodeGenerating())
 
 **User Secrets Store (Durable Object):**
@@ -184,11 +198,27 @@ Edit `worker/agents/operations/UserConversationProcessor.ts`
 **Capabilities (wrangler.jsonc):**
 - app: enabled
 - presentation: enabled
-- general: disabled
+- general: enabled
 
 **Auth:**
 - Email whitelist: `ALLOWED_EMAILS` env var (comma-separated)
 - Current: codyboring@me.com, barbstreet@jastreet.com, stevenhobbs76@yahoo.com
+
+**Screenshots:**
+- Uses CF Browser Rendering REST API (not binding) at /browser-rendering/snapshot
+- Requires CLOUDFLARE_API_TOKEN secret with "Browser Rendering - Edit" permission
+- Screenshot analysis wired to Kimi K2.5 vision (runs in background after capture)
+- Analysis broadcasts SCREENSHOT_ANALYSIS_RESULT via WebSocket
+
+**Stuck App Recovery:**
+- Apps stuck in "generating" = DO crashed before finally block ran
+- `AppService.cleanupStaleGenerating(60)` marks old generating apps as completed
+- Manual: `UPDATE apps SET status = 'completed' WHERE status = 'generating'`
+
+## Commit Message Rules
+- Commitlint rejects sentence-case subjects ("AI" triggers it -- use "ai" lowercase)
+- Max header: 200 chars
+- Pre-commit runs typecheck + related vitest tests (can be slow with fuzz tests)
 
 ## Core Rules (Non-Negotiable)
 
