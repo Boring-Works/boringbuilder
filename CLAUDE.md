@@ -14,7 +14,7 @@ BoringForge is an AI-powered full-stack application generation platform built on
 **Tech Stack:**
 - Frontend: React 19.2, TypeScript 5.9, Vite (rolldown-vite 7.x), TailwindCSS 4, React Router v7
 - Backend: Cloudflare Workers, Durable Objects, D1 (SQLite), Hono
-- AI/LLM: Multi-provider via CF AI Gateway (Google, xAI, OpenAI, Anthropic, DeepSeek, OpenRouter)
+- AI/LLM: Workers AI free tier (Nemotron 3, Kimi K2.5, Qwen3, GLM 4.7, Granite 4, DeepSeek R1 Distill)
 - ORM: Drizzle 0.45, Agents SDK 0.2, OpenAI SDK 5.23
 - WebSocket: PartySocket for real-time communication
 - Sandbox: Custom container service (4 vCPU, 12GB RAM)
@@ -86,24 +86,25 @@ users, sessions, api_keys, apps, favorites, stars, app_likes, comment_likes, app
 
 Config at `worker/agents/inferutils/config.ts`. Two modes selected by `PLATFORM_MODEL_PROVIDERS` env var:
 
-**Platform Config (active in production -- multi-provider):**
+**Platform Config (active in production -- Workers AI free tier):**
 
 | Operation | Model | Reasoning | Max Tokens | Temp | Fallback |
 |-----------|-------|-----------|------------|------|----------|
-| blueprint | Gemini 3 Pro Preview | high | 20000 | 1.0 | Gemini 2.5 Flash |
-| projectSetup | Grok 4.1 Fast | medium | 8000 | 1 | Gemini 2.5 Pro |
-| phaseGeneration | Gemini 3 Flash Preview | medium | 8000 | 1 | OpenAI 5 Mini |
-| phaseImplementation | Gemini 3 Flash Preview | low | 48000 | 1 | Gemini 2.5 Pro |
-| conversationalResponse | Grok 4.1 Fast | low | 4000 | 1 | Gemini 2.5 Flash |
-| deepDebugger | Grok 4.1 Fast | high | 8000 | 1 | Gemini 2.5 Pro |
-| fileRegeneration | Grok 4.1 Fast (non-reasoning) | low | 16000 | 0.0 | Grok Code Fast 1 |
-| agenticProjectBuilder | Gemini 3 Flash Preview | medium | 8000 | 1 | Gemini 2.5 Pro |
-| realtimeCodeFixer | Grok 4.1 Fast (non-reasoning) | low | 32000 | 0.2 | Gemini 2.5 Flash |
-| templateSelection | Gemini 2.5 Flash Lite | -- | 2000 | 1 | Grok 4.1 Fast (NR) |
+| blueprint | Nemotron 3 120B | high | 20000 | 1.0 | Kimi K2.5 |
+| projectSetup | Qwen3 30B | medium | 8000 | 1 | GLM 4.7 Flash |
+| phaseGeneration | Kimi K2.5 | medium | 8000 | 1 | Nemotron 3 120B |
+| phaseImplementation | Kimi K2.5 | low | 48000 | 0.6 | Qwen2.5 Coder 32B |
+| conversationalResponse | GLM 4.7 Flash | low | 4000 | 0.8 | Qwen3 30B |
+| deepDebugger | Nemotron 3 120B | high | 8000 | 0.2 | DeepSeek R1 Distill |
+| fileRegeneration | Qwen2.5 Coder 32B | low | 16000 | 0.0 | GLM 4.7 Flash |
+| agenticProjectBuilder | Nemotron 3 120B | medium | 8000 | 1 | Kimi K2.5 |
+| realtimeCodeFixer | GLM 4.7 Flash | low | 32000 | 0.2 | Qwen3 30B |
+| templateSelection | GLM 4.7 Flash | -- | 2000 | 0.0 | Granite 4.0 Micro |
+| fastCodeFixer | GLM 4.7 Flash | low | 64000 | 0.0 | Qwen2.5 Coder 32B |
 
 **Default Config (no env var -- Gemini only):** All operations use Gemini 3 Flash Preview or Gemini 2.5 Flash.
 
-Providers: `google-ai-studio,anthropic,deepseek,openrouter,grok,openai`
+Provider: `workers-ai` (no external API keys needed, runs on CF GPUs)
 
 ## Core Architecture
 
