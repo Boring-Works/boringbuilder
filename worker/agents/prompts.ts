@@ -54,6 +54,13 @@ export const PROMPT_UTILS = {
         return outputParts.join('\n');
     },
 
+    /** Compact template summary for repeat LLM calls -- saves ~2700 tokens vs full serialization */
+    summarizeTemplate(template?: TemplateDetails): string {
+        if (!template) return 'No template — build from scratch.';
+        const dontTouch = (template.dontTouchFiles ?? []).slice(0, 5).join(', ');
+        return `Template: ${template.name} | Frameworks: ${template.frameworks?.join(', ') || 'none'} | Do-not-touch: ${dontTouch}`;
+    },
+
     serializeTemplate(template?: TemplateDetails): string {
         if (template) {
             return `

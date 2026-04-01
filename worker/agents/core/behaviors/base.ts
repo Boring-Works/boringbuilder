@@ -1776,8 +1776,15 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
                     this.logger.warn('All retry attempts resulted in blank screenshot, using last capture');
                 }
 
-                // Process and store the screenshot
-                return await this.processAndStoreScreenshot(base64Screenshot, url, viewport);
+                // Process, store, and analyze the screenshot
+                const signedUrl = await this.processAndStoreScreenshot(base64Screenshot, url, viewport);
+
+                // Run AI analysis in background (non-blocking)
+                this.analyzeScreenshot(base64Screenshot).catch(err =>
+                    this.logger.warn('Background screenshot analysis failed:', err)
+                );
+
+                return signedUrl;
 
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
@@ -1833,6 +1840,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
 
         if (!response.ok) {
             const errorText = await response.text();
+            if (response.status === 401) {
+                throw new Error(`Browser Rendering API auth failed (401). The CLOUDFLARE_API_TOKEN secret needs "Browser Rendering - Edit" permission. Details: ${errorText}`);
+            }
             throw new Error(`Browser Rendering API failed: ${response.status} - ${errorText}`);
         }
 
@@ -1904,5 +1914,65 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
         });
 
         return signedUrl;
+    }
+
+    /**
+     * Analyze a screenshot using AI vision to detect UI issues.
+     * Sends the screenshot as a multimodal message to the screenshotAnalysis model.
+     */
+    public async analyzeScreenshot(screenshotBase64: string): Promise<{
+        hasIssues: boolean;
+        issues: string[];
+        suggestions: string[];
+    } | null> {
+        try {
+            const { createMultiModalUserMessage, createSystemMessage } = await import('../../inferutils/common');
+            const { infer } = await import('../../inferutils/core');
+            const { ScreenshotAnalysisSchema } = await import('../../schemas');
+
+            const systemMsg = createSystemMessage(
+                'You are a UI quality analyst. Analyze the screenshot and report visual issues, broken layouts, missing content, or rendering problems. Be concise and specific.'
+            );
+            const userMsg = createMultiModalUserMessage(
+                'Analyze this screenshot for UI issues, layout problems, and rendering errors.',
+                `data:image/png;base64,${screenshotBase64}`,
+                'low'
+            );
+
+            const result = await infer({
+                env: this.env,
+                metadata: this.state.metadata,
+                messages: [systemMsg, userMsg],
+                schema: ScreenshotAnalysisSchema,
+                schemaName: 'screenshotAnalysis',
+                actionKey: 'screenshotAnalysis',
+                modelName: 'screenshotAnalysis',
+                maxTokens: 4000,
+                temperature: 0.2,
+            });
+
+            if (result && 'object' in result && result.object) {
+                const raw = result.object as Record<string, unknown>;
+                const analysis = {
+                    hasIssues: Boolean(raw.hasIssues),
+                    issues: Array.isArray(raw.issues) ? raw.issues as string[] : [],
+                    suggestions: Array.isArray(raw.suggestions) ? raw.suggestions as string[] : [],
+                };
+                if (analysis.hasIssues) {
+                    this.logger.warn('Screenshot analysis found issues:', analysis.issues);
+                    this.broadcast(WebSocketMessageResponses.SCREENSHOT_ANALYSIS_RESULT, {
+                        analysis,
+                        hasIssues: true,
+                    });
+                } else {
+                    this.logger.info('Screenshot analysis: no issues found');
+                }
+                return analysis;
+            }
+            return null;
+        } catch (error) {
+            this.logger.error('Screenshot analysis failed:', error);
+            return null;
+        }
     }
 }
