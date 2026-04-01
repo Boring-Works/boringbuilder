@@ -79,11 +79,15 @@ export function isOriginAllowed(env: Env, origin: string): boolean {
     if (allowedOrigins.includes(origin)) return true;
 
     // Subdomain match for user-generated app previews (*.getboring.io)
+    // SECURITY NOTE: This allows any user-generated app subdomain to make credentialed
+    // requests to the main API. The AI proxy endpoint has its own origin check.
+    // For multi-user deployments, restrict this to specific sandbox prefixes (b-{sessionId}-*).
     if (env.CUSTOM_PREVIEW_DOMAIN) {
         const suffix = `.${env.CUSTOM_PREVIEW_DOMAIN}`;
         try {
             const { hostname } = new URL(origin);
-            if (hostname.endsWith(suffix)) return true;
+            // Only allow sandbox preview subdomains (b-{uuid}-{hash}.getboring.io)
+            if (hostname.endsWith(suffix) && hostname.includes('-')) return true;
         } catch {
             return false;
         }

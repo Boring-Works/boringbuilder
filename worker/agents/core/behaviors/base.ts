@@ -451,15 +451,22 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
         } finally {
             // Clear abort controller after generation completes
             this.clearAbortController();
-            
-            const appService = new AppService(this.env);
-            await appService.updateApp(
-                this.getAgentId(),
-                {
-                    status: 'completed',
-                }
-            );
+
+            // Always clear generation state and notify client, even if DB update fails
             this.generationPromise = null;
+
+            try {
+                const appService = new AppService(this.env);
+                await appService.updateApp(
+                    this.getAgentId(),
+                    {
+                        status: 'completed',
+                    }
+                );
+            } catch (dbError) {
+                this.logger.error('Failed to update app status to completed:', dbError);
+            }
+
             this.broadcast(WebSocketMessageResponses.GENERATION_COMPLETE, {
                 message: "Code generation and review process completed.",
                 instanceId: this.state.sandboxInstanceId,

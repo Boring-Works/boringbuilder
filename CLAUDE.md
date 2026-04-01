@@ -97,7 +97,7 @@ Config at `worker/agents/inferutils/config.ts`. Two modes selected by `PLATFORM_
 | conversationalResponse | GLM 4.7 Flash | low | 4000 | 0.8 | Qwen3 30B |
 | deepDebugger | Nemotron 3 120B | high | 8000 | 0.2 | DeepSeek R1 Distill |
 | fileRegeneration | Qwen2.5 Coder 32B | low | 16000 | 0.0 | GLM 4.7 Flash |
-| agenticProjectBuilder | Nemotron 3 120B | medium | 8000 | 1 | Kimi K2.5 |
+| agenticProjectBuilder | Kimi K2.5 | high | 48000 | 1 | GPT-OSS 120B |
 | realtimeCodeFixer | GLM 4.7 Flash | low | 32000 | 0.2 | Qwen3 30B |
 | templateSelection | GLM 4.7 Flash | -- | 2000 | 0.0 | Granite 4.0 Micro |
 | fastCodeFixer | GLM 4.7 Flash | low | 64000 | 0.0 | Qwen2.5 Coder 32B |
