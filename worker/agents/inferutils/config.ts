@@ -14,103 +14,105 @@ const COMMON_AGENT_CONFIGS = {
         reasoning_effort: 'medium' as const,
         max_tokens: 8000,
         temperature: 1,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        fallbackModel: AIModels.WAI_GLM_47_FLASH,
     },
     realtimeCodeFixer: {
-        name: AIModels.GROK_4_1_FAST_NON_REASONING,
+        name: AIModels.WAI_GLM_47_FLASH,
         reasoning_effort: 'low' as const,
         max_tokens: 32000,
         temperature: 0.2,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        fallbackModel: AIModels.WAI_QWEN3_30B,
     },
     fastCodeFixer: {
-        name: AIModels.DISABLED,
-        reasoning_effort: undefined,
+        name: AIModels.WAI_GLM_47_FLASH,
+        reasoning_effort: 'low' as const,
         max_tokens: 64000,
         temperature: 0.0,
-        fallbackModel: AIModels.GEMINI_2_5_PRO,
+        fallbackModel: AIModels.WAI_QWEN25_CODER_32B,
     },
     templateSelection: {
-        name: AIModels.GEMINI_2_5_FLASH_LITE,
+        name: AIModels.WAI_GLM_47_FLASH,
         max_tokens: 2000,
-        fallbackModel: AIModels.GROK_4_1_FAST_NON_REASONING,
-        temperature: 1,
+        fallbackModel: AIModels.WAI_GRANITE_4_MICRO,
+        temperature: 0.0,
     },
 } as const;
 
 const SHARED_IMPLEMENTATION_CONFIG = {
     reasoning_effort: 'low' as const,
     max_tokens: 48000,
-    temperature: 1,
-    fallbackModel: AIModels.GEMINI_2_5_PRO,
+    temperature: 0.6,
+    fallbackModel: AIModels.WAI_QWEN25_CODER_32B,
 };
 
 //======================================================================================
-// ATTENTION! Platform config requires specific API keys and Cloudflare AI Gateway setup.
+// Workers AI platform config -- runs on CF GPUs, no external API keys needed.
+// Models selected per operation based on CF Workers AI catalog (March 2026).
 //======================================================================================
-/*
-Multi-provider config (requires PLATFORM_MODEL_PROVIDERS env var to be set).
-You may need to provide API keys for these models in your environment or use
-Cloudflare AI Gateway unified billing for seamless model access without managing multiple keys.
-*/
 const PLATFORM_AGENT_CONFIG: AgentConfig = {
     ...COMMON_AGENT_CONFIGS,
     blueprint: {
-        name: AIModels.GEMINI_3_PRO_PREVIEW,
+        name: AIModels.WAI_NEMOTRON_3_120B,
         reasoning_effort: 'high',
         max_tokens: 20000,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        fallbackModel: AIModels.WAI_KIMI_K2_5,
         temperature: 1.0,
     },
     projectSetup: {
-        name: AIModels.GROK_4_1_FAST,
+        name: AIModels.WAI_QWEN3_30B,
         reasoning_effort: 'medium',
         max_tokens: 8000,
         temperature: 1,
-        fallbackModel: AIModels.GEMINI_2_5_PRO,
+        fallbackModel: AIModels.WAI_GLM_47_FLASH,
     },
     phaseGeneration: {
-        name: AIModels.GEMINI_3_FLASH_PREVIEW,
+        name: AIModels.WAI_KIMI_K2_5,
         reasoning_effort: 'medium',
         max_tokens: 8000,
         temperature: 1,
-        fallbackModel: AIModels.OPENAI_5_MINI,
+        fallbackModel: AIModels.WAI_NEMOTRON_3_120B,
     },
     firstPhaseImplementation: {
-        name: AIModels.GEMINI_3_FLASH_PREVIEW,
-        ...SHARED_IMPLEMENTATION_CONFIG,
+        name: AIModels.WAI_KIMI_K2_5,
+        reasoning_effort: 'low',
+        max_tokens: 48000,
+        temperature: 0.6,
+        fallbackModel: AIModels.WAI_QWEN25_CODER_32B,
     },
     phaseImplementation: {
-        name: AIModels.GEMINI_3_FLASH_PREVIEW,
-        ...SHARED_IMPLEMENTATION_CONFIG,
+        name: AIModels.WAI_KIMI_K2_5,
+        reasoning_effort: 'low',
+        max_tokens: 48000,
+        temperature: 0.6,
+        fallbackModel: AIModels.WAI_QWEN25_CODER_32B,
     },
     conversationalResponse: {
-        name: AIModels.GROK_4_1_FAST,
+        name: AIModels.WAI_GLM_47_FLASH,
         reasoning_effort: 'low',
         max_tokens: 4000,
-        temperature: 1,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        temperature: 0.8,
+        fallbackModel: AIModels.WAI_QWEN3_30B,
     },
     deepDebugger: {
-        name: AIModels.GROK_4_1_FAST,
+        name: AIModels.WAI_NEMOTRON_3_120B,
         reasoning_effort: 'high',
         max_tokens: 8000,
-        temperature: 1,
-        fallbackModel: AIModels.GEMINI_2_5_PRO,
+        temperature: 0.2,
+        fallbackModel: AIModels.WAI_DEEPSEEK_R1_DISTILL,
     },
     fileRegeneration: {
-        name: AIModels.GROK_4_1_FAST_NON_REASONING,
+        name: AIModels.WAI_QWEN25_CODER_32B,
         reasoning_effort: 'low',
         max_tokens: 16000,
         temperature: 0.0,
-        fallbackModel: AIModels.GROK_CODE_FAST_1,
+        fallbackModel: AIModels.WAI_GLM_47_FLASH,
     },
     agenticProjectBuilder: {
-        name: AIModels.GEMINI_3_FLASH_PREVIEW,
+        name: AIModels.WAI_NEMOTRON_3_120B,
         reasoning_effort: 'medium',
         max_tokens: 8000,
         temperature: 1,
-        fallbackModel: AIModels.GEMINI_2_5_PRO,
+        fallbackModel: AIModels.WAI_KIMI_K2_5,
     },
 };
 

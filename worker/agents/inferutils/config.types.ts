@@ -453,7 +453,90 @@ const MODELS_MASTER = {
             creditCost: 8, // $0.22
             contextSize: 262144, // 256K Context
         },
-    }
+    },
+
+    // --- Workers AI Models (free tier, runs on CF GPUs, no API keys needed) ---
+    WAI_NEMOTRON_3_120B: {
+        id: 'workers-ai/@cf/nvidia/nemotron-3-120b-a12b',
+        config: {
+            name: 'Nemotron 3 120B',
+            size: ModelSize.LARGE,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 32768,
+        }
+    },
+    WAI_KIMI_K2_5: {
+        id: 'workers-ai/@cf/moonshotai/kimi-k2.5',
+        config: {
+            name: 'Kimi K2.5',
+            size: ModelSize.LARGE,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 262144,
+        }
+    },
+    WAI_QWEN3_30B: {
+        id: 'workers-ai/@cf/qwen/qwen3-30b-a3b-fp8',
+        config: {
+            name: 'Qwen3 30B',
+            size: ModelSize.REGULAR,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 32768,
+        }
+    },
+    WAI_QWEN25_CODER_32B: {
+        id: 'workers-ai/@cf/qwen/qwen2.5-coder-32b-instruct',
+        config: {
+            name: 'Qwen2.5 Coder 32B',
+            size: ModelSize.REGULAR,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 32768,
+        }
+    },
+    WAI_GLM_47_FLASH: {
+        id: 'workers-ai/@cf/zai-org/glm-4.7-flash',
+        config: {
+            name: 'GLM 4.7 Flash',
+            size: ModelSize.LITE,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 131072,
+        }
+    },
+    WAI_GRANITE_4_MICRO: {
+        id: 'workers-ai/@cf/ibm/granite-4.0-h-micro',
+        config: {
+            name: 'Granite 4.0 Micro',
+            size: ModelSize.LITE,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 32768,
+        }
+    },
+    WAI_DEEPSEEK_R1_DISTILL: {
+        id: 'workers-ai/@cf/deepseek/deepseek-r1-distill-qwen-32b',
+        config: {
+            name: 'DeepSeek R1 Distill',
+            size: ModelSize.REGULAR,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 32768,
+            enableThinking: true,
+        }
+    },
+    WAI_GPT_OSS_120B: {
+        id: 'workers-ai/@cf/openai/gpt-oss-120b',
+        config: {
+            name: 'GPT-OSS 120B',
+            size: ModelSize.LARGE,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 131072,
+        }
+    },
 } as const;
 
 /**

@@ -147,7 +147,7 @@
         "DISPATCH_NAMESPACE": "boringbuilder-apps",
         "ENABLE_READ_REPLICAS": "false",
         "CLOUDFLARE_AI_GATEWAY": "boringbuilder_gateway",
-        "PLATFORM_MODEL_PROVIDERS": "google-ai-studio,anthropic,deepseek,openrouter,grok,openai",
+        "PLATFORM_MODEL_PROVIDERS": "workers-ai",
         "PLATFORM_CAPABILITIES": {
             "features": {
                 "app": {

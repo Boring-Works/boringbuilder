@@ -1068,4 +1068,19 @@ export class AppService extends BaseService {
     private async enrichScreenshotUrls<T extends { id: string; screenshotUrl?: string | null }>(apps: T[]): Promise<T[]> {
         return new ScreenshotSecurity(this.env).enrichUrls(apps);
     }
+
+    async cleanupStaleGenerating(maxAgeMinutes: number = 60): Promise<number> {
+        const cutoff = Math.floor(Date.now() / 1000) - (maxAgeMinutes * 60);
+        const result = await this.database
+            .update(schema.apps)
+            .set({ status: 'completed' })
+            .where(
+                and(
+                    eq(schema.apps.status, 'generating'),
+                    sql`${schema.apps.updatedAt} < ${cutoff}`
+                )
+            )
+            .returning();
+        return result.length;
+    }
 }
