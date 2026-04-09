@@ -445,6 +445,11 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
         return false;
     }
 
+    setPreflightCompleted(): void {
+        this.setState({ ...this.state, preflightCompleted: true });
+        this.logger.info('Preflight completed');
+    }
+
     isMVPGenerated(): boolean {
         return this.state.mvpGenerated;
     }

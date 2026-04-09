@@ -129,6 +129,10 @@ export const LitePhasicBlueprintSchema = SimpleBlueprintSchema.extend({
 
 export const AgenticBlueprintSchema = SimpleBlueprintSchema.extend({
     plan: z.array(z.string()).describe('Step by step plan for implementing the project'),
+    preflightAnswers: z.array(z.object({
+        question: z.string(),
+        answer: z.string(),
+    })).optional().describe('Answers to preflight questions asked before generation'),
 });
 
 export const BlueprintSchemaLite = PhasicBlueprintSchema.omit({

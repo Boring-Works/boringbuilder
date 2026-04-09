@@ -15,6 +15,8 @@ export interface ICodingAgent {
     isMVPGenerated(): boolean;
     
     setMVPGenerated(): boolean;
+
+    setPreflightCompleted(): void;
     
     getLogs(reset?: boolean, durationSeconds?: number): Promise<string>;
     

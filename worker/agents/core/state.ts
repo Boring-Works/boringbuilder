@@ -66,6 +66,10 @@ export interface BaseProjectState {
 
     mvpGenerated: boolean;
     reviewingInitiated: boolean;
+
+    // Preflight questions
+    preflightQuestions?: string[];
+    preflightCompleted?: boolean;
 }
 
 /** Phasic agent state */

@@ -18,6 +18,7 @@ export function createAlterBlueprintTool(
 		colorPalette: z.array(z.string()).optional(),
 		frameworks: z.array(z.string()).optional(),
 		plan: z.array(z.string()).optional(),
+		preflightAnswers: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
 	});
 
 	const phasicPatchSchema = z.object({
@@ -53,6 +54,10 @@ export function createAlterBlueprintTool(
 		run: async ({ patch }) => {
 			logger.info('Altering blueprint', { keys: Object.keys(patch || {}) });
 			const updated = await agent.updateBlueprint(patch as Partial<Blueprint>);
+			// Auto-complete preflight when answers are provided
+			if ('preflightAnswers' in patch && (patch as any).preflightAnswers?.length) {
+				agent.setPreflightCompleted();
+			}
 			return updated;
 		},
 	});

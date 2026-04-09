@@ -47,6 +47,9 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     private toolCallCounter: number = 0;
     private readonly COMPACTIFY_CHECK_INTERVAL = 4; // Compact early to reduce context bloat (was 9)
 
+    // Preflight wait mechanism
+    private pendingInputResolver: (() => void) | null = null;
+
     /**
      * Initialize the code generator with project blueprint and template
      * Sets up services and begins deployment process
@@ -57,7 +60,7 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     ): Promise<AgenticState> {
         await super.initialize(initArgs);
 
-        const { query, hostname, inferenceContext, templateInfo, sandboxSessionId } = initArgs;
+        const { query, hostname, inferenceContext, templateInfo, sandboxSessionId, preflightQuestions } = initArgs;
 
         const packageJson = templateInfo?.templateDetails?.allFiles['package.json'];
 
@@ -90,7 +93,9 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
             hostname,
             metadata: inferenceContext.metadata,
             projectType: this.projectType,
-            behaviorType: 'agentic'
+            behaviorType: 'agentic',
+            preflightQuestions,
+            preflightCompleted: !preflightQuestions,
         });
         
         if (templateInfo && templateInfo.templateDetails.name !== 'scratch') {
@@ -123,6 +128,12 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
         }
 
         await this.queueUserRequest(userMessage, processedImages);
+
+        // Resolve any pending preflight wait
+        if (this.pendingInputResolver) {
+            this.pendingInputResolver();
+            this.pendingInputResolver = null;
+        }
 
         if (this.isCodeGenerating()) {
             // Code generating - render tool call for UI
@@ -217,6 +228,13 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     }
     
     async build(): Promise<void> {
+        // Wait for preflight questions to be answered before building
+        if (!this.state.preflightCompleted && this.state.preflightQuestions?.length) {
+            await new Promise<void>((resolve) => {
+                this.pendingInputResolver = resolve;
+            });
+        }
+
         let attempt = 0;
         while (!this.isMVPGenerated() || this.state.pendingUserInputs.length > 0) {
             await this.executeGeneration(attempt);
@@ -343,6 +361,8 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
                 toolRenderer: toolCallRenderer,
                 onToolComplete,
                 onAssistantMessage,
+                preflightQuestions: this.state.preflightQuestions,
+                preflightCompleted: this.state.preflightCompleted,
             };
 
             // Execute operation

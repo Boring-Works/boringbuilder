@@ -173,6 +173,7 @@ export class CodingAgentController extends BaseController {
                 hostname,
                 inferenceContext,
                 images: uploadedImages,
+                preflightQuestions: body.preflightQuestions,
                 onBlueprintChunk: (chunk: string) => {
                     writer.write({chunk});
                 },

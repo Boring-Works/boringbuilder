@@ -72,17 +72,32 @@ ${sections.deploymentTools}
 </tools>`;
 };
 
-const getSystemPrompt = (projectType: ProjectType, dynamicHints: string, renderMode?: 'sandbox' | 'browser', operationalMode?: 'initial' | 'followup'): string => {
+const buildPreflightSection = (preflightQuestions?: string[], preflightCompleted?: boolean): string => {
+    if (!preflightQuestions?.length) return '';
+    if (preflightCompleted) return '';
+    return `<preflight_questions>
+Before starting implementation, ask the user these clarifying questions one at a time. Wait for answers before proceeding.
+
+Questions to ask:
+${preflightQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+After all questions are answered, use alter_blueprint to save the answers as preflightAnswers, then proceed with implementation.
+</preflight_questions>`;
+};
+
+const getSystemPrompt = (projectType: ProjectType, dynamicHints: string, renderMode?: 'sandbox' | 'browser', operationalMode?: 'initial' | 'followup', preflightQuestions?: string[], preflightCompleted?: boolean): string => {
     const variant = selectVariant(projectType, renderMode, operationalMode);
     const sections = PROMPT_REGISTRY[variant];
     const isPresentationProject = variant === 'presentation';
 
     const tools = buildToolsSection(sections);
     const contextSpecificGuidance = dynamicHints ? `<dynamic_guidance>\n${dynamicHints}\n</dynamic_guidance>` : '';
+    const preflightSection = buildPreflightSection(preflightQuestions, preflightCompleted);
 
     return [
         sections.coreIdentity,
         COMMUNICATION_MODE,
+        preflightSection,
         sections.criticalRules,
         sections.architecture,
         sections.workflow,
