@@ -183,11 +183,13 @@ export class AppService extends BaseService {
         }
         
         if (search) {
-            const searchTerm = `%${search.toLowerCase()}%`;
+            // Escape LIKE special characters to treat search as a literal substring
+            const escapedSearch = search.toLowerCase().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+            const searchTerm = `%${escapedSearch}%`;
             conditions.push(
                 or(
-                    sql`LOWER(${schema.apps.title}) LIKE ${searchTerm}`,
-                    sql`LOWER(${schema.apps.description}) LIKE ${searchTerm}`
+                    sql`LOWER(${schema.apps.title}) LIKE ${searchTerm} ESCAPE '\\'`,
+                    sql`LOWER(${schema.apps.description}) LIKE ${searchTerm} ESCAPE '\\'`
                 )
             );
         }

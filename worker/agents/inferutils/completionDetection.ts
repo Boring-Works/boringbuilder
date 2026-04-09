@@ -1,5 +1,8 @@
 import { ToolCallResult } from '../tools/types';
 import { CompletionSignal } from './common';
+import { createLogger } from '../../logger';
+
+const logger = createLogger('CompletionDetector');
 
 /**
  * Detects completion signals from executed tool calls

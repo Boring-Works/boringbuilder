@@ -7,6 +7,9 @@ import { BaseProjectState, FileState } from 'worker/agents/core/state';
 import { TemplateDetails } from '../../../services/sandbox/sandboxTypes';
 import { GitVersionControl } from 'worker/agents/git';
 import { isFileModifiable } from '../../../services/sandbox/utils';
+import { createLogger } from '../../../logger';
+
+const logger = createLogger('FileManager');
 
 /**
  * Manages file operations for code generation
@@ -29,7 +32,7 @@ export class FileManager implements IFileManager {
      * TODO: Remove in the future by making git fs the single source of truth
      */
     async syncGeneratedFilesMapFromGit(): Promise<void> {
-        console.log('[FileManager] Auto-syncing generatedFilesMap from git HEAD');
+        logger.debug('[FileManager] Auto-syncing generatedFilesMap from git HEAD');
         
         try {
             // Get all files from HEAD commit
@@ -58,12 +61,11 @@ export class FileManager implements IFileManager {
                 generatedFilesMap: newMap
             });
             
-            console.log('[FileManager] Sync complete', {
+            logger.debug('[FileManager] Sync complete', {
                 filesCount: Object.keys(newMap).length,
-                preservedPurposes: Object.values(newMap).filter(f => oldMap[f.filePath]?.filePurpose).length
             });
         } catch (error) {
-            console.error('[FileManager] Failed to sync from git:', error);
+            logger.error('[FileManager] Failed to sync from git', { error: error instanceof Error ? error.message : String(error) });
             // Don't throw - keep existing state as fallback
         }
     }
@@ -107,7 +109,7 @@ export class FileManager implements IFileManager {
 
         for (const file of files) {
             if (!isFileModifiable(file.filePath, dontTouchFiles).allowed && !overwrite) {
-                console.warn(`[FileManager] Skipping protected file ${file.filePath}`);
+                logger.warn(`[FileManager] Skipping protected file ${file.filePath}`);
                 continue;
             }
             let lastDiff = '';
@@ -121,7 +123,7 @@ export class FileManager implements IFileManager {
                 try {
                     lastDiff = Diff.createPatch(file.filePath, oldFileContents, file.fileContents);
                 } catch (error) {
-                    console.error(`Failed to generate diff for file ${file.filePath}:`, error);
+                    logger.error(`Failed to generate diff for file ${file.filePath}`, { error: error instanceof Error ? error.message : String(error) });
                 }
             }
             
@@ -158,16 +160,16 @@ export class FileManager implements IFileManager {
         try {
             if (commitMessage) {
                 const unescapedMessage = commitMessage.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-                console.log(`[FileManager] Committing ${fileStates.length} files:`, unescapedMessage);
+                logger.debug(`[FileManager] Committing ${fileStates.length} files`);
                 await this.git.commit(fileStates, unescapedMessage);
-                console.log(`[FileManager] Commit successful`);
+                logger.debug(`[FileManager] Commit successful`);
             } else if (fileStates.length > 0 && fileStates.some(f => f.lastDiff !== '')) {
-                console.log(`[FileManager] Staging ${fileStates.length} files`);
+                logger.debug(`[FileManager] Staging ${fileStates.length} files`);
                 await this.git.stage(fileStates);
-                console.log(`[FileManager] Stage successful`);
+                logger.debug(`[FileManager] Stage successful`);
             }
         } catch (error) {
-            console.error(`[FileManager] Failed to commit files:`, error, commitMessage);
+            logger.error(`[FileManager] Failed to commit files`, { error: error instanceof Error ? error.message : String(error) });
         }
         return fileStates;
     }
@@ -217,7 +219,7 @@ export class FileManager implements IFileManager {
                 filePurpose: 'Bootstrapped template file',
             }
         } catch (error) {
-            console.error(`[FileManager] Failed to get template file:`, error, filePath);
+            logger.error(`[FileManager] Failed to get template file`, { filePath, error: error instanceof Error ? error.message : String(error) });
             return null;
         }
     }

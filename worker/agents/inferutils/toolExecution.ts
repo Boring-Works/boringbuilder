@@ -1,6 +1,9 @@
 import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources';
 import type { ToolDefinition, ToolCallResult, ResourceAccess } from '../tools/types';
 import { hasResourceConflict } from '../tools/resources';
+import { createLogger } from '../../logger';
+
+const logger = createLogger('ToolExecution');
 
 export interface ExecutionPlan {
 	parallelGroups: ChatCompletionMessageFunctionToolCall[][];
@@ -37,7 +40,7 @@ export function buildExecutionPlan(
 			const resources = def.resources(args);
 			toolCallResources.set(call.id, resources);
 		} catch (error) {
-			console.warn(`[TOOL_EXECUTION] Failed to parse arguments for ${call.function.name}:`, error);
+			logger.warn(`[TOOL_EXECUTION] Failed to parse arguments for ${call.function.name}`, { error: error instanceof Error ? error.message : String(error) });
 			toolCallResources.set(call.id, {});
 		}
 	}
@@ -100,9 +103,7 @@ export function buildExecutionPlan(
 
 		// Handle circular dependencies
 		if (group.length === 0) {
-			console.warn(
-				'[TOOL_EXECUTION] Circular dependency detected, falling back to sequential'
-			);
+			logger.warn('[TOOL_EXECUTION] Circular dependency detected, falling back to sequential');
 
 			// Add first unexecuted tool to break cycle
 			for (const call of toolCalls) {
@@ -190,19 +191,11 @@ export async function executeToolCallsWithDependencies(
 	// Build execution plan
 	const plan = buildExecutionPlan(toolCalls, toolDefMap);
 
-	// Log execution plan for debugging
-	console.log(`[TOOL_EXECUTION] Execution plan: ${plan.parallelGroups.length} parallel groups`);
-	plan.parallelGroups.forEach((group, i) => {
-		const toolNames = group.map((c) => c.function.name).join(', ');
-		const parallelIndicator = group.length > 1 ? ' (parallel)' : '';
-		console.log(`[TOOL_EXECUTION]   Group ${i + 1}: ${toolNames}${parallelIndicator}`);
-	});
-
 	// Execute groups sequentially, tools within group in parallel
 	const allResults: ToolCallResult[] = [];
 
 	for (const [groupIndex, group] of plan.parallelGroups.entries()) {
-		console.log(
+		logger.debug(
 			`[TOOL_EXECUTION] Executing group ${groupIndex + 1}/${plan.parallelGroups.length}`
 		);
 
@@ -216,19 +209,12 @@ export async function executeToolCallsWithDependencies(
 				}
 
 				const result = await executeSingleTool(toolCall, toolDef);
-
-				console.log(
-					`[TOOL_EXECUTION] ${toolCall.function.name} completed ${result.result && typeof result.result === 'object' && result.result !== null && 'error' in result.result ? '(with error)' : 'successfully'}`
-				);
-
 				return result;
 			})
 		);
 
 		allResults.push(...groupResults);
 	}
-
-	console.log(`[TOOL_EXECUTION] All ${toolCalls.length} tool calls completed`);
 
 	return allResults;
 }

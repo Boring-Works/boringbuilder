@@ -47,9 +47,8 @@ export class AppViewController extends BaseController {
                 // Authenticated user view
                 await appService.recordAppView(appId, userId);
             } else {
-                // Anonymous user view - use a special anonymous identifier
-                // This could be enhanced with session tracking or IP-based deduplication
-                await appService.recordAppView(appId, 'anonymous-' + Date.now());
+                // Anonymous user view — use a constant key; no per-view deduplication at this time
+                await appService.recordAppView(appId, 'anonymous');
             }
 
             // Try to fetch current agent state to get latest generated code
