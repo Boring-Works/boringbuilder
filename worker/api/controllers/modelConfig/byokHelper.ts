@@ -1,6 +1,9 @@
 import { AIModels } from '../../../agents/inferutils/config.types';
 import type { UserProviderStatus, ModelsByProvider } from './types';
 import { getBYOKTemplates } from '../../../types/secretsTemplates';
+import { createLogger } from '../../../logger';
+
+const logger = createLogger('BYOKHelper');
 
 export async function getUserProviderStatus(
 	_userId: string,
@@ -14,7 +17,7 @@ export async function getUserProviderStatus(
 			hasValidKey: false,
 		}));
 	} catch (error) {
-		console.error('Error getting user provider status:', error);
+		logger.error('Error getting user provider status', { error: error instanceof Error ? error.message : String(error) });
 		return [];
 	}
 }

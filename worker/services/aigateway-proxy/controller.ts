@@ -6,12 +6,14 @@ import { jwtVerify, SignJWT } from 'jose';
 import { isDev } from 'worker/utils/envs';
 import { RateLimitService } from '../rate-limit/rateLimits';
 import { getUserConfigurableSettings } from 'worker/config';
-import { AI_MODEL_CONFIG, AIModels } from 'worker/agents/inferutils/config.types';
+import { AI_MODEL_CONFIG, AIModels, isValidAIModel } from 'worker/agents/inferutils/config.types';
+import { createLogger } from '../../logger';
+
+const logger = createLogger('AIGatewayProxy');
 
 export async function proxyToAiGateway(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
-    console.log(`[AI Proxy] Received request: ${request.method} ${request.url}`);
     if (!env.AI_PROXY_JWT_SECRET) {
-        console.error('AI Gateway proxy is not enabled for this platform');
+        logger.error('AI Gateway proxy is not enabled for this platform');
         // Platform doesnt have ai gateway proxy enabled, return 403
         return new Response(JSON.stringify({ 
             error: { message: 'AI Gateway proxy is not enabled for this platform', type: 'invalid_request_error' } 
@@ -20,15 +22,17 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
             headers: { 'Content-Type': 'application/json' } 
         });
     }
-    // Handle CORS preflight requests
+    // Handle CORS preflight requests — reflect the validated origin (outer check in index.ts already ensured it's allowed)
     if (request.method === 'OPTIONS') {
+        const origin = request.headers.get('Origin') ?? '';
         return new Response(null, {
             status: 204,
             headers: {
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': origin,
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, Authorization',
                 'Access-Control-Max-Age': '86400',
+                'Vary': 'Origin',
             },
         });
     }
@@ -82,7 +86,7 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
             userId = payload.userId as string;
             
         } catch (error) {
-            console.error('[AI Proxy] Token verification failed:', error);
+            logger.warn('[AI Proxy] Token verification failed', { error: error instanceof Error ? error.message : String(error) });
             return new Response(JSON.stringify({ 
                 error: { message: 'Invalid or expired token', type: 'invalid_request_error' } 
             }), { 
@@ -112,7 +116,7 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
         }
         
         if (app.userId !== userId) {
-            console.error(`[AI Proxy] UserId mismatch: token userId=${userId}, app userId=${app.userId}`);
+            logger.warn('[AI Proxy] UserId mismatch', { tokenUserId: userId, appUserId: app.userId });
             return new Response(JSON.stringify({ 
                 error: { message: 'Token does not match app owner', type: 'invalid_request_error' } 
             }), { 
@@ -121,7 +125,7 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
             });
         }
 
-        console.log(`[AI Proxy] Authenticated request from app: ${app.title} (${app.id}), user: ${app.userId}`);
+        logger.info('[AI Proxy] Authenticated request', { appId: app.id, userId: app.userId });
 
         const url = new URL(request.url);
         const requestBody = await request.json() as {
@@ -145,6 +149,21 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
 
         const modelName = requestBody.model;
 
+        // Validate the model name against the known model registry to prevent unknown model probing
+        if (!isValidAIModel(modelName)) {
+            return new Response(JSON.stringify({ 
+                error: { 
+                    message: `Unsupported model: ${modelName}`,
+                    type: 'invalid_request_error',
+                    param: 'model',
+                    code: 'unsupported_model'
+                } 
+            }), { 
+                status: 400, 
+                headers: { 'Content-Type': 'application/json' } 
+            });
+        }
+
         // Enforce rate limit
         const userConfig = await getUserConfigurableSettings(env, app.userId)
         await RateLimitService.enforceLLMCallsRateLimit(env, userConfig.security.rateLimit, app.userId, modelName, "apps")
@@ -155,7 +174,7 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
             app.userId
         );
 
-        console.log(`[AI Proxy] Forwarding request to model: ${modelName}, baseURL: ${baseURL}`);
+        logger.info('[AI Proxy] Forwarding request', { model: modelName });
 
         const proxyHeaders = new Headers();
         proxyHeaders.set('Content-Type', 'application/json');
@@ -177,8 +196,6 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
         const targetPath = url.pathname.replace('/api/proxy/openai', '');
         const targetUrl = `${baseURL}${targetPath}${url.search}`;
 
-        console.log(`[AI Proxy] Target URL: ${targetUrl}`);
-
         const proxyResponse = await fetch(targetUrl, {
             method: request.method,
             headers: proxyHeaders,
@@ -192,7 +209,7 @@ export async function proxyToAiGateway(request: Request, env: Env, _ctx: Executi
         });
 
     } catch (error) {
-        console.error('[AI Proxy] Error processing request:', error);
+        logger.error('[AI Proxy] Error processing request', { error: error instanceof Error ? error.message : String(error) });
         return new Response(JSON.stringify({ 
             error: { 
                 message: error instanceof Error ? error.message : 'Internal server error',

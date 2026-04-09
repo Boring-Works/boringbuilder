@@ -74,8 +74,8 @@ export class AppViewController extends BaseController {
                 cloudflareUrl: cloudflareUrl,
                 previewUrl: previewUrl || cloudflareUrl,
                 user: {
-                    id: appResult.userId!,
-                    displayName: appResult.userName || 'Unknown',
+                    id: appResult.userId ?? '',
+                    displayName: appResult.userName || 'Anonymous User',
                     avatarUrl: appResult.userAvatar
                 },
                 agentSummary,

@@ -26,6 +26,9 @@ import {
 } from './vault-types';
 import { PendingWsTicket, TicketConsumptionResult } from '../../types/auth-types';
 import { WsTicketManager } from '../../utils/wsTicketManager';
+import { createLogger } from '../../logger';
+
+const logger = createLogger('UserSecretsStore');
 
 interface VaultSession {
 	encryptedVMK: ArrayBuffer;
@@ -187,7 +190,7 @@ export class UserSecretsStore extends DurableObject<Env> {
 				secretId,
 			});
 		} catch (error) {
-			console.error('Vault store secret failed', {
+			logger.error('Vault store secret failed', {
 				error: error instanceof Error ? error.message : String(error),
 			});
 			this.sendWs(ws, {

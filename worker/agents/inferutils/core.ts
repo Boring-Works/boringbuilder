@@ -23,6 +23,9 @@ import { RateLimitType } from 'worker/services/rate-limit/config';
 import { getMaxToolCallingDepth, MAX_LLM_MESSAGES } from '../constants';
 import { executeToolCallsWithDependencies } from './toolExecution';
 import { CompletionDetector } from './completionDetection';
+import { createLogger } from '../../logger';
+
+const logger = createLogger('InferenceCore');
 
 function optimizeInputs(messages: Message[]): Message[] {
     return messages.map((message) => ({
@@ -54,12 +57,9 @@ function accumulateToolCallDelta(
     // Look up existing entry by id or index
     if (idFromDelta && byId.has(idFromDelta)) {
         entry = byId.get(idFromDelta)!;
-        console.log(`[TOOL_CALL_DEBUG] Found existing entry by id: ${idFromDelta}`);
     } else if (idx !== undefined && byIndex.has(idx)) {
         entry = byIndex.get(idx)!;
-        console.log(`[TOOL_CALL_DEBUG] Found existing entry by index: ${idx}`);
     } else {
-        console.log(`[TOOL_CALL_DEBUG] Creating new entry - id: ${idFromDelta}, index: ${idx}`);
         // Create new entry
         const provisionalId = idFromDelta || synthIdForIndex(idx ?? byId.size);
         entry = {
@@ -105,10 +105,7 @@ function accumulateToolCallDelta(
             try {
                 JSON.parse(before);
                 isComplete = true;
-                console.warn(`[TOOL_CALL_WARNING] Already have complete JSON, ignoring additional chunk for ${entry.function.name}:`, {
-                    existing_json: before,
-                    ignored_chunk: chunk
-                });
+                logger.warn(`[TOOL_CALL_WARNING] Already have complete JSON, ignoring additional chunk for ${entry.function.name}`);
             } catch {
                 // Not complete yet, continue accumulating
             }
@@ -116,17 +113,6 @@ function accumulateToolCallDelta(
 
         if (!isComplete) {
             entry.function.arguments += chunk;
-
-            // Debug logging for tool call argument accumulation
-            console.log(`[TOOL_CALL_DEBUG] Accumulating arguments for ${entry.function.name || 'unknown'}:`, {
-                id: entry.id,
-                index: entry.index,
-                before_length: before.length,
-                chunk_length: chunk.length,
-                chunk_content: chunk,
-                after_length: entry.function.arguments.length,
-                after_content: entry.function.arguments
-            });
         }
     }
 }
@@ -223,7 +209,7 @@ export async function buildGatewayUrl(
             }
         } catch (error) {
             // Invalid URL, fall through to use bindings
-            console.warn(`Invalid CLOUDFLARE_AI_GATEWAY_URL provided: ${env.CLOUDFLARE_AI_GATEWAY_URL}. Falling back to AI bindings.`);
+            logger.warn(`Invalid CLOUDFLARE_AI_GATEWAY_URL provided. Falling back to AI bindings.`);
         }
     }
     
@@ -235,7 +221,7 @@ export async function buildGatewayUrl(
     // For Workers AI and other /compat users: append /compat to base gateway URL
     const gatewayBaseUrl = (await gateway.getUrl()).replace(/\/+$/, '');
     const compatUrl = `${gatewayBaseUrl}/compat`;
-    console.log(`[Gateway] Using compat endpoint: ${compatUrl}`);
+    logger.debug(`[Gateway] Using compat endpoint`);
     return compatUrl;
 }
 
@@ -256,7 +242,6 @@ async function getApiKey(
 	_userId: string,
 	runtimeOverrides?: InferenceRuntimeOverrides,
 ): Promise<string> {
-    console.log("Getting API key for provider: ", provider);
 
     const runtimeKey = runtimeOverrides?.userApiKeys?.[provider];
     if (runtimeKey && isValidApiKey(runtimeKey)) {
@@ -570,7 +555,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
     // Check tool calling depth to prevent infinite recursion
     const currentDepth = toolCallContext?.depth ?? 0;
     if (currentDepth >= getMaxToolCallingDepth(actionKey)) {
-        console.warn(`Tool calling depth limit reached (${currentDepth}/${getMaxToolCallingDepth(actionKey)}). Stopping recursion.`);
+        logger.warn(`Tool calling depth limit reached (${currentDepth}/${getMaxToolCallingDepth(actionKey)}). Stopping recursion.`);
         // Return a response indicating max depth reached
         if (schema) {
             throw new AbortError(`Maximum tool calling depth (${getMaxToolCallingDepth(actionKey)}) exceeded. Tools may be calling each other recursively.`, toolCallContext);
@@ -589,7 +574,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
 
         // Guard: skip API call for disabled models, use empty response
         if (!modelConfig || modelConfig.provider === 'None') {
-            console.warn(`[Inference] Model "${modelName}" is disabled or unknown. Skipping API call.`);
+            logger.warn(`[Inference] Model "${modelName}" is disabled or unknown. Skipping API call.`);
             return schema
                 ? { object: undefined as never, toolCallContext }
                 : { string: '', toolCallContext };
@@ -601,7 +586,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             metadata.userId,
             runtimeOverrides,
         );
-        console.log(`[Inference] baseUrl: ${baseURL}, modelName: ${modelName}, provider: ${modelConfig.provider}, useProviderEndpoint: ${useProviderEndpoint}, hasApiKey: ${!!apiKey}`);
+        logger.debug(`[Inference] provider: ${modelConfig.provider}, useProviderEndpoint: ${useProviderEndpoint}, hasApiKey: ${!!apiKey}`);
 
         // Add session affinity for Workers AI prompt caching (no-op for other providers)
         const sessionHeaders = modelConfig.provider === 'workers-ai'
@@ -650,7 +635,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
 
         // Optimize messages to reduce token count
         const optimizedMessages = optimizeInputs(messages);
-        console.log(`Token optimization: Original messages size ~${JSON.stringify(messages).length} chars, optimized size ~${JSON.stringify(optimizedMessages).length} chars`);
+        logger.debug(`Token optimization: ${JSON.stringify(messages).length} chars -> ${JSON.stringify(optimizedMessages).length} chars`);
 
         let messagesToPass = [...optimizedMessages];
         if (toolCallContext && toolCallContext.messages) {
@@ -667,11 +652,11 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 // Filter tool messages
                 if (msg.role === 'tool') {
                     if (!msg.name?.trim()) {
-                        console.warn('[TOOL_ORPHAN] Dropping tool message with empty name:', msg.tool_call_id);
+                        logger.warn('[TOOL_ORPHAN] Dropping tool message with empty name', { toolCallId: msg.tool_call_id });
                         return false;
                     }
                     if (!msg.tool_call_id || !validToolCallIds.has(msg.tool_call_id)) {
-                        console.warn('[TOOL_ORPHAN] Dropping orphaned tool message:', msg.name, msg.tool_call_id);
+                        logger.warn('[TOOL_ORPHAN] Dropping orphaned tool message', { name: msg.name, toolCallId: msg.tool_call_id });
                         return false;
                     }
                 }
@@ -735,7 +720,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             }
         }
 
-        console.log(`Running inference with ${modelName} using structured output with ${format} format, reasoning effort: ${reasoning_effort}, max tokens: ${maxTokens}, temperature: ${temperature}, frequency_penalty: ${frequency_penalty}, baseURL: ${baseURL}`);
+        logger.debug(`Running inference: action=${actionKey}, format=${format ?? 'none'}, reasoning=${reasoning_effort ?? 'default'}, maxTokens=${maxTokens}`);
 
         const toolsOpts = tools ? {
             tools: tools.map(t => {
@@ -797,19 +782,15 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                     })
                 }
             });
-            console.log(`Inference response received`);
+            logger.debug(`Inference response received`);
         } catch (error) {
             // Check if error is due to abort
             if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted') || error.message?.includes('abort'))) {
-                console.log('Inference cancelled by user');
+                logger.info('Inference cancelled by user');
                 throw new AbortError('**User cancelled inference**', toolCallContext);
             }
             
-            console.error(`Failed to get inference response from OpenAI: ${error}`);
-            // if ((error instanceof Error && error.message.includes('429')) || (typeof error === 'string' && error.includes('429'))) {
-
-            //     throw new RateLimitExceededError('Rate limit exceeded in LLM calls, Please try again later', RateLimitType.LLM_CALLS);
-            // }
+            logger.error(`Failed to get inference response from OpenAI: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
         let toolCalls: ChatCompletionMessageFunctionToolCall[] = [];
@@ -832,10 +813,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 for await (const event of response) {
                     const delta = (event as ChatCompletionChunk).choices[0]?.delta;
                     
-                    // Provider-specific logging
-                    if (delta?.tool_calls && modelConfig?.provider === 'google-ai-studio') {
-                        console.log(`[PROVIDER_DEBUG] google-ai-studio tool_calls delta:`, JSON.stringify(delta.tool_calls, null, 2));
-                    }
+                    // Provider-specific tool_call delta logging removed (use logger.debug if re-enabling)
                     
                     if (delta?.tool_calls) {
                         try {
@@ -843,7 +821,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                                 accumulateToolCallDelta(byIndex, byId, deltaToolCall, orderCounterRef);
                             }
                         } catch (error) {
-                            console.error('Error processing tool calls in streaming:', error);
+                            logger.error('Error processing tool calls in streaming', { error: error instanceof Error ? error.message : String(error) });
                         }
                     }
                     
@@ -860,33 +838,29 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
 
                 // Detect truncation: finish_reason 'length' means max_tokens was hit
                 if (lastFinishReason === 'length') {
-                    console.warn(`[TRUNCATION] Model output truncated by max_tokens limit. Action: ${actionKey}, Model: ${modelName}, Content length: ${content.length} chars`);
+                    logger.warn(`[TRUNCATION] Model output truncated. Action: ${actionKey}, Content length: ${content.length} chars`);
                 }
 
                 // Assemble toolCalls with preference for index ordering, else first-seen order
                 const assembled = assembleToolCalls(byIndex, byId);
                 const dropped = assembled.filter(tc => !tc.function.name || tc.function.name.trim() === '');
                 if (dropped.length) {
-                    console.warn(`[TOOL_CALL_WARNING] Dropping ${dropped.length} streamed tool_call(s) without function name`, dropped);
+                    logger.warn(`[TOOL_CALL_WARNING] Dropping ${dropped.length} streamed tool_call(s) without function name`);
                 }
                 toolCalls = assembled.filter(tc => tc.function.name && tc.function.name.trim() !== '');
                 
                 // Validate accumulated tool calls (do not mutate arguments)
                 for (const toolCall of toolCalls) {
                     if (!toolCall.function.name) {
-                        console.warn('Tool call missing function name:', toolCall);
+                        logger.warn('Tool call missing function name');
                     }
                     if (toolCall.function.arguments) {
                         try {
-                            // Validate JSON arguments early for visibility
-                            const parsed = JSON.parse(toolCall.function.arguments);
-                            console.log(`[TOOL_CALL_VALIDATION] Successfully parsed arguments for ${toolCall.function.name}:`, parsed);
+                            JSON.parse(toolCall.function.arguments);
                         } catch (error) {
-                            console.error(`[TOOL_CALL_VALIDATION] Invalid JSON in tool call arguments for ${toolCall.function.name}:`, {
+                            logger.error(`[TOOL_CALL_VALIDATION] Invalid JSON in tool call arguments for ${toolCall.function.name}`, {
                                 error: error instanceof Error ? error.message : String(error),
                                 arguments_length: toolCall.function.arguments.length,
-                                arguments_content: toolCall.function.arguments,
-                                arguments_hex: Buffer.from(toolCall.function.arguments).toString('hex')
                             });
                         }
                     }
@@ -894,7 +868,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 // Do not drop tool calls without id; we used a synthetic id and will update if a real id arrives in later deltas
             } else {
                 // Handle the case where stream was requested but a non-stream response was received
-                console.error('Expected a stream response but received a ChatCompletion object.');
+                logger.error('Expected a stream response but received a ChatCompletion object.');
                 // Properly extract both content and tool calls from non-stream response
                 const completion = response as OpenAI.ChatCompletion;
                 const message = completion.choices[0]?.message;
@@ -909,14 +883,14 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             const allToolCalls = ((response as OpenAI.ChatCompletion).choices[0]?.message?.tool_calls as ChatCompletionMessageFunctionToolCall[] || []);
             const droppedNonStream = allToolCalls.filter(tc => !tc.function.name || tc.function.name.trim() === '');
             if (droppedNonStream.length) {
-                console.warn(`[TOOL_CALL_WARNING] Dropping ${droppedNonStream.length} non-stream tool_call(s) without function name`, droppedNonStream);
+                logger.warn(`[TOOL_CALL_WARNING] Dropping ${droppedNonStream.length} non-stream tool_call(s) without function name`);
             }
             toolCalls = allToolCalls.filter(tc => tc.function.name && tc.function.name.trim() !== '');
             const completion = response as OpenAI.ChatCompletion;
             const totalTokens = completion.usage?.total_tokens;
-            console.log(`Total tokens used in prompt: ${totalTokens}`);
+            logger.debug(`Total tokens used in prompt: ${totalTokens}`);
             if (completion.choices[0]?.finish_reason === 'length') {
-                console.warn(`[TRUNCATION] Model output truncated by max_tokens limit. Action: ${actionKey}, Model: ${modelName}, Content length: ${content.length} chars, Tokens: ${totalTokens}`);
+                logger.warn(`[TRUNCATION] Model output truncated. Action: ${actionKey}, Content length: ${content.length} chars, Tokens: ${totalTokens}`);
             }
         }
 
@@ -934,19 +908,18 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             // // Only error if not streaming and no content
             // console.error('No content received from OpenAI', JSON.stringify(response, null, 2));
             // throw new Error('No content received from OpenAI');
-            console.warn('No content received from OpenAI', JSON.stringify(response, null, 2));
+            logger.warn('No content received from OpenAI');
             return { string: "", toolCallContext };
         }
         let executedToolCalls: ToolCallResult[] = [];
         if (tools) {
-            // console.log(`Tool calls:`, JSON.stringify(toolCalls, null, 2), 'definition:', JSON.stringify(tools, null, 2));
             try {
                 executedToolCalls = await executeToolCalls(toolCalls, tools);
             } catch (error) {
-                console.error(`Tool execution failed${toolCalls.length > 0 ? ` for ${toolCalls[0].function.name}` : ''}:`, error);
+                logger.error(`Tool execution failed${toolCalls.length > 0 ? ` for ${toolCalls[0].function.name}` : ''}`, { error: error instanceof Error ? error.message : String(error) });
                 // Check if error is an abort error
                 if (error instanceof AbortError) {
-                    console.warn(`Tool call was aborted, ending tool call chain with the latest tool call result`);
+                    logger.warn(`Tool call was aborted, ending tool call chain with the latest tool call result`);
 
                     const newToolCallContext = updateToolCallContext(toolCallContext, assistantMessage, executedToolCalls, completionConfig?.detector);
                     return { string: content, toolCallContext: newToolCallContext };
@@ -960,13 +933,11 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
         */
 
         if (executedToolCalls.length) {
-            console.log(`Tool calls executed:`, JSON.stringify(executedToolCalls, null, 2));
-
             const newToolCallContext = updateToolCallContext(toolCallContext, assistantMessage, executedToolCalls, completionConfig?.detector);
 
             // Stop recursion if completion signal detected
             if (newToolCallContext.completionSignal?.signaled) {
-                console.log(`[COMPLETION] ${newToolCallContext.completionSignal.toolName} called, stopping recursion`);
+                logger.debug(`[COMPLETION] ${newToolCallContext.completionSignal.toolName} called, stopping recursion`);
 
                 if (schema && schemaName) {
                     throw new AbortError(
@@ -985,7 +956,7 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
                 result.result !== undefined &&
                 !(completionConfig?.detector?.isCompletionTool(result.name))
             );
-            console.log(`${actionKey}: Tool depth ${newToolCallContext.depth}/${getMaxToolCallingDepth(actionKey)}`);
+            logger.debug(`${actionKey}: Tool depth ${newToolCallContext.depth}/${getMaxToolCallingDepth(actionKey)}`);
             
             if (executedCallsWithResults.length) {
                 if (schema && schemaName) {
@@ -1051,22 +1022,20 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
             const result = schema.safeParse(parsedContent);
 
             if (!result.success) {
-                console.log('Raw content:', content);
-                console.log('Parsed data:', parsedContent);
-                console.error('Schema validation errors:', result.error.format());
+                logger.error('Schema validation errors', { error: result.error.format() });
                 throw new Error(`Failed to validate AI response against schema: ${result.error.message}`);
             }
 
             return { object: result.data, toolCallContext };
         } catch (parseError) {
-            console.error('Error parsing response:', parseError);
+            logger.error('Error parsing response', { error: parseError instanceof Error ? parseError.message : String(parseError) });
             throw new InferError('Failed to parse response', content, toolCallContext);
         }
     } catch (error) {
         if (error instanceof RateLimitExceededError || error instanceof SecurityError) {
             throw error;
         }
-        console.error('Error in inferWithSchemaOutput:', error);
+        logger.error('Error in inferWithSchemaOutput', { error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 }
