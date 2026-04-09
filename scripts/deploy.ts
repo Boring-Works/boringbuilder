@@ -1582,7 +1582,7 @@ class CloudflareDeploymentManager {
 		console.log('🚀 Deploying to Cloudflare Workers...');
 
 		try {
-			execSync('wrangler deploy', {
+			execSync('npx wrangler deploy', {
 				stdio: 'inherit',
 				cwd: PROJECT_ROOT,
 			});
@@ -1834,7 +1834,7 @@ class CloudflareDeploymentManager {
 				return;
 			}
 
-			execSync('wrangler secret bulk .prod.vars', {
+			execSync('npx wrangler secret bulk .prod.vars', {
 				stdio: 'inherit',
 				cwd: PROJECT_ROOT,
 			});
