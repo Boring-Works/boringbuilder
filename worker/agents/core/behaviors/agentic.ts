@@ -10,7 +10,7 @@ import { AgenticProjectBuilderOperation, AgenticProjectBuilderInputs } from '../
 import { buildToolCallRenderer } from '../../operations/UserConversationProcessor';
 import { PhaseGenerationOperation } from '../../operations/PhaseGeneration';
 import { FastCodeFixerOperation } from '../../operations/PostPhaseCodeFixer';
-import { customizeTemplateFiles, generateProjectName } from '../../utils/templateCustomizer';
+import { generateProjectName } from '../../utils/templateCustomizer';
 import { IdGenerator } from '../../utils/idGenerator';
 import { generateNanoId } from '../../../utils/idGenerator';
 import { BaseCodingBehavior, BaseCodingOperations } from './base';
@@ -47,6 +47,9 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     private toolCallCounter: number = 0;
     private readonly COMPACTIFY_CHECK_INTERVAL = 4; // Compact early to reduce context bloat (was 9)
 
+    // Preflight wait mechanism
+    private pendingInputResolver: (() => void) | null = null;
+
     /**
      * Initialize the code generator with project blueprint and template
      * Sets up services and begins deployment process
@@ -57,7 +60,7 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     ): Promise<AgenticState> {
         await super.initialize(initArgs);
 
-        const { query, hostname, inferenceContext, templateInfo, sandboxSessionId } = initArgs;
+        const { query, hostname, inferenceContext, templateInfo, sandboxSessionId, preflightQuestions } = initArgs;
 
         const packageJson = templateInfo?.templateDetails?.allFiles['package.json'];
 
@@ -90,37 +93,13 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
             hostname,
             metadata: inferenceContext.metadata,
             projectType: this.projectType,
-            behaviorType: 'agentic'
+            behaviorType: 'agentic',
+            preflightQuestions,
+            preflightCompleted: !preflightQuestions,
         });
         
         if (templateInfo && templateInfo.templateDetails.name !== 'scratch') {
-            // Customize template files (package.json, wrangler.jsonc, .bootstrap.js, .gitignore)
-            const customizedFiles = customizeTemplateFiles(
-                templateInfo.templateDetails.allFiles,
-                {
-                    projectName,
-                    commandsHistory: [] // Empty initially, will be updated later
-                }
-            );
-            
-            this.logger.info('Customized template files', { 
-                files: Object.keys(customizedFiles) 
-            });
-            
-            // Save customized files to git
-            const filesToSave = Object.entries(customizedFiles).map(([filePath, content]) => ({
-                filePath,
-                fileContents: content,
-                filePurpose: 'Project configuration file'
-            }));
-            
-            await this.fileManager.saveGeneratedFiles(
-                filesToSave,
-                'Initialize project configuration files',
-                true
-            );
-            
-            this.logger.info('Committed customized template files to git');
+            await this.saveTemplateFilesToVFS(templateInfo.templateDetails, projectName);
             this.deployToSandbox();
         }
         this.logger.info(`Agent ${this.getAgentId()} session: ${this.state.sessionId} initialized successfully`);
@@ -149,6 +128,12 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
         }
 
         await this.queueUserRequest(userMessage, processedImages);
+
+        // Resolve any pending preflight wait
+        if (this.pendingInputResolver) {
+            this.pendingInputResolver();
+            this.pendingInputResolver = null;
+        }
 
         if (this.isCodeGenerating()) {
             // Code generating - render tool call for UI
@@ -243,6 +228,13 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     }
     
     async build(): Promise<void> {
+        // Wait for preflight questions to be answered before building
+        if (!this.state.preflightCompleted && this.state.preflightQuestions?.length) {
+            await new Promise<void>((resolve) => {
+                this.pendingInputResolver = resolve;
+            });
+        }
+
         let attempt = 0;
         while (!this.isMVPGenerated() || this.state.pendingUserInputs.length > 0) {
             await this.executeGeneration(attempt);
@@ -356,6 +348,7 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
                 blueprint: this.state.blueprint,
                 filesIndex: Object.values(this.state.generatedFilesMap),
                 projectType: this.state.projectType || 'app',
+                selectedTemplate: this.state.templateName || undefined,
                 operationalMode: this.isMVPGenerated() ? 'followup' : 'initial',
                 conversationHistory,
                 streamCb: (chunk: string) => {
@@ -368,6 +361,8 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
                 toolRenderer: toolCallRenderer,
                 onToolComplete,
                 onAssistantMessage,
+                preflightQuestions: this.state.preflightQuestions,
+                preflightCompleted: this.state.preflightCompleted,
             };
 
             // Execute operation

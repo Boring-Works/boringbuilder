@@ -81,6 +81,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
 
     protected staticAnalysisCache: StaticAnalysisResponse | null = null;
 
+    private sandboxReadyPromise: Promise<void>;
+    private resolveSandboxReady!: () => void;
+
     protected userModelConfigs?: Record<AgentActionKey, ModelConfig>;
     protected runtimeOverrides?: InferenceRuntimeOverrides;
     
@@ -102,11 +105,27 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
     constructor(infrastructure: AgentInfrastructure<TState>, protected projectType: ProjectType) {
         super(infrastructure);
 
+        this.sandboxReadyPromise = new Promise(resolve => { this.resolveSandboxReady = resolve; });
+        if (this.state.sandboxInstanceId) {
+            this.resolveSandboxReady();
+        }
+
         this.setState({
             ...this.state,
             behaviorType: this.getBehavior(),
             projectType: this.projectType,
         });
+    }
+
+    protected async waitForSandboxReady(timeoutMs: number = 5000): Promise<boolean> {
+        const ready = await Promise.race([
+            this.sandboxReadyPromise.then(() => true),
+            new Promise<false>(resolve => setTimeout(() => resolve(false), timeoutMs))
+        ]);
+        if (!ready) {
+            this.logger.warn(`Sandbox not ready after ${timeoutMs}ms`);
+        }
+        return ready;
     }
 
     public async initialize(
@@ -426,6 +445,11 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
         return false;
     }
 
+    setPreflightCompleted(): void {
+        this.setState({ ...this.state, preflightCompleted: true });
+        this.logger.info('Preflight completed');
+    }
+
     isMVPGenerated(): boolean {
         return this.state.mvpGenerated;
     }
@@ -732,6 +756,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
             const staticAnalysis = await this.runStaticAnalysisCode();
             this.logger.info("Fetched issues (browser-rendered):", JSON.stringify({ runtimeErrors: [], staticAnalysis }));
             return { runtimeErrors: [], staticAnalysis };
+        }
+        if (!await this.waitForSandboxReady()) {
+            return { runtimeErrors: [], staticAnalysis: { success: false, lint: { issues: [] }, typecheck: { issues: [] } } };
         }
         const [runtimeErrors, staticAnalysis] = await Promise.all([
             this.fetchRuntimeErrors(resetIssues),
@@ -1181,6 +1208,7 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
             }
         );
 
+        this.resolveSandboxReady();
         return result;
     }
     
@@ -1241,6 +1269,41 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
         }
     }
 
+    /**
+     * Save all template files to the virtual FS with customized configs
+     * (package.json, wrangler.jsonc, .bootstrap.js, .gitignore) merged on top.
+     */
+    protected async saveTemplateFilesToVFS(
+        templateDetails: TemplateDetails,
+        projectName: string
+    ): Promise<void> {
+        const customizedFiles = customizeTemplateFiles(
+            templateDetails.allFiles,
+            { projectName, commandsHistory: this.getBootstrapCommands() }
+        );
+
+        const filesToSaveMap: Record<string, string> = {
+            ...templateDetails.allFiles,
+            ...customizedFiles,
+        };
+
+        const filesToSave = Object.entries(filesToSaveMap).map(([filePath, content]) => ({
+            filePath,
+            fileContents: content,
+            filePurpose: 'Template file'
+        }));
+
+        await this.fileManager.saveGeneratedFiles(
+            filesToSave,
+            'Initialize template files',
+            true
+        );
+
+        this.logger.info('Saved template files to VFS', {
+            count: filesToSave.length,
+        });
+    }
+
     async importTemplate(templateName: string): Promise<{ templateName: string; filesImported: number; files: TemplateFile[] }> {
         this.logger.info(`Importing template into project: ${templateName}`);
 
@@ -1272,6 +1335,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
 
         // Get important files for return value
         const importantFiles = getTemplateImportantFiles(templateDetails);
+
+        // Save all template files to VFS so the agent can read/modify them
+        await this.saveTemplateFilesToVFS(templateDetails, this.state.projectName);
 
         // Ensure deployment to sandbox 
         await this.deployToSandbox();

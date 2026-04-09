@@ -16,6 +16,9 @@ export interface CodeGenArgs {
 
     /** Optional ephemeral credentials (BYOK / gateway override) for sdk */
     credentials?: CredentialsPayload;
+
+    /** Optional preflight questions to ask before generation */
+    preflightQuestions?: string[];
 }
 
 /**

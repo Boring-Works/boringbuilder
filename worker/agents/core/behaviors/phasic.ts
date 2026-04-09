@@ -15,7 +15,7 @@ import { PhaseImplementationOperation } from '../../operations/PhaseImplementati
 import { FileRegenerationOperation } from '../../operations/FileRegeneration';
 import { PhaseGenerationOperation } from '../../operations/PhaseGeneration';
 import { FastCodeFixerOperation } from '../../operations/PostPhaseCodeFixer';
-import { customizePackageJson, customizeTemplateFiles, generateProjectName } from '../../utils/templateCustomizer';
+import { customizePackageJson, generateProjectName } from '../../utils/templateCustomizer';
 import { generateBlueprint } from '../../planning/blueprint';
 import { RateLimitExceededError } from 'shared/types/errors';
 import {  ImageAttachment, type ProcessedImageAttachment } from '../../../types/image-attachment';
@@ -45,7 +45,6 @@ interface PhasicOperations extends BaseCodingOperations {
  */
 export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implements ICodingAgent {
     protected static readonly PROJECT_NAME_PREFIX_MAX_LENGTH = 20;
-    private sandboxReadyPromise: Promise<void> | null = null;
 
     protected operations: PhasicOperations = {
         regenerateFile: new FileRegenerationOperation(),
@@ -120,35 +119,9 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
             behaviorType: 'phasic'
         };
         this.setState(nextState);
-        // Customize template files (package.json, wrangler.jsonc, .bootstrap.js, .gitignore)
-        const customizedFiles = customizeTemplateFiles(
-            templateInfo.templateDetails.allFiles,
-            {
-                projectName,
-                commandsHistory: []
-            }
-        );
-        
-        this.logger.info('Customized template files', { 
-            files: Object.keys(customizedFiles) 
-        });
-        
-        // Save customized files to git
-        const filesToSave = Object.entries(customizedFiles).map(([filePath, content]) => ({
-            filePath,
-            fileContents: content,
-            filePurpose: 'Project configuration file'
-        }));
-        
-        await this.fileManager.saveGeneratedFiles(
-            filesToSave,
-            'Initialize project configuration files',
-            true
-        );
-        
-        this.logger.info('Committed customized template files to git');
+        await this.saveTemplateFilesToVFS(templateInfo.templateDetails, projectName);
 
-        this.sandboxReadyPromise = this.initializeAsync().catch((error: unknown) => {
+        this.initializeAsync().catch((error: unknown) => {
             this.broadcastError("Initialization failed", error);
         });
         this.logger.info(`Agent ${this.getAgentId()} session: ${this.state.sessionId} initialized successfully`);
@@ -256,13 +229,6 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
 
     private async launchStateMachine() {
         this.logger.info("Launching state machine");
-
-        // Wait for sandbox provisioning to complete before starting
-        if (this.sandboxReadyPromise) {
-            this.logger.info("Waiting for sandbox readiness before starting state machine");
-            await this.sandboxReadyPromise;
-            this.logger.info("Sandbox ready, proceeding with state machine");
-        }
 
         let currentDevState = CurrentDevState.PHASE_IMPLEMENTING;
         const generatedPhases = this.state.generatedPhases;
