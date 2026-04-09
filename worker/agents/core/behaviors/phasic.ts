@@ -45,7 +45,6 @@ interface PhasicOperations extends BaseCodingOperations {
  */
 export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implements ICodingAgent {
     protected static readonly PROJECT_NAME_PREFIX_MAX_LENGTH = 20;
-    private sandboxReadyPromise: Promise<void> | null = null;
 
     protected operations: PhasicOperations = {
         regenerateFile: new FileRegenerationOperation(),
@@ -148,7 +147,7 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
         
         this.logger.info('Committed customized template files to git');
 
-        this.sandboxReadyPromise = this.initializeAsync().catch((error: unknown) => {
+        this.initializeAsync().catch((error: unknown) => {
             this.broadcastError("Initialization failed", error);
         });
         this.logger.info(`Agent ${this.getAgentId()} session: ${this.state.sessionId} initialized successfully`);
@@ -256,13 +255,6 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
 
     private async launchStateMachine() {
         this.logger.info("Launching state machine");
-
-        // Wait for sandbox provisioning to complete before starting
-        if (this.sandboxReadyPromise) {
-            this.logger.info("Waiting for sandbox readiness before starting state machine");
-            await this.sandboxReadyPromise;
-            this.logger.info("Sandbox ready, proceeding with state machine");
-        }
 
         let currentDevState = CurrentDevState.PHASE_IMPLEMENTING;
         const generatedPhases = this.state.generatedPhases;
