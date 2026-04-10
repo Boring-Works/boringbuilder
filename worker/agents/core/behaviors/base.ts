@@ -208,12 +208,10 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
 
     public getTemplateDetails(): TemplateDetails {
         if (!this.templateDetailsCache) {
-            // Synthesize a minimal scratch template when starting from scratch
             if (this.state.templateName === 'scratch') {
                 this.templateDetailsCache = createScratchTemplateDetails();
                 return this.templateDetailsCache;
             }
-            this.ensureTemplateDetails();
             throw new Error('Template details not loaded. Call ensureTemplateDetails() first.');
         }
         return this.templateDetailsCache;

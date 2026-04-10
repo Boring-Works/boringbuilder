@@ -177,7 +177,7 @@ export class CodeGeneratorAgent extends Agent<Env, AgentState> implements AgentI
         // Create objective based on project type
         this.objective = this.createObjective(projectType);
 
-        this.behavior.onStart(props);
+        await this.behavior.onStart(props);
 
         // Ignore if agent not initialized
         if (!this.state.query) {
