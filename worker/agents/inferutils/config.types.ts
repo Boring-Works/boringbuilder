@@ -496,6 +496,16 @@ const MODELS_MASTER = {
             contextSize: 32768,
         }
     },
+    WAI_QWQ_32B: {
+        id: 'workers-ai/@cf/qwen/qwq-32b',
+        config: {
+            name: 'QwQ 32B',
+            size: ModelSize.REGULAR,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 32768,
+        }
+    },
     WAI_GLM_47_FLASH: {
         id: 'workers-ai/@cf/zai-org/glm-4.7-flash',
         config: {
@@ -535,6 +545,16 @@ const MODELS_MASTER = {
             provider: 'workers-ai',
             creditCost: 0,
             contextSize: 131072,
+        }
+    },
+    WAI_GEMMA_4_26B: {
+        id: 'workers-ai/@cf/google/gemma-4-26b-a4b-it',
+        config: {
+            name: 'Gemma 4 26B',
+            size: ModelSize.REGULAR,
+            provider: 'workers-ai',
+            creditCost: 0,
+            contextSize: 262144,
         }
     },
 } as const;
