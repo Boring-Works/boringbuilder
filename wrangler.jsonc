@@ -149,7 +149,7 @@
         "TEMPLATES_REPOSITORY": "https://github.com/Boring-Works/vibesdk-templates",
         "ALLOWED_EMAILS": "codyboring@me.com,barbstreet@jastreet.com,stevenhobbs76@yahoo.com",
         "DISPATCH_NAMESPACE": "boringbuilder-apps",
-        "ENABLE_READ_REPLICAS": "false",
+        "ENABLE_READ_REPLICAS": "true",
         "PLATFORM_MODEL_PROVIDERS": "workers-ai",
         "PLATFORM_CAPABILITIES": {
             "features": {

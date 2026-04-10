@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
+## Upstream Sync Status
+- Last synced against: `cloudflare/vibesdk@bdbf48a` (2026-03-31)
+- BoringBuilder is **2 commits ahead** of upstream
+- All 6 upstream PRs (#342/345, #343, #357, #358, #360, #363) have been applied
+- Upstream pivoted to external model APIs (Gemini/Grok/OpenAI) — we intentionally stayed on Workers AI
+- See `DECISIONS.md` for full rationale on architectural divergences
+
 ## Communication Style
 - Be professional, concise, and direct
 - Do NOT use emojis in code reviews, changelogs, or any generated content
