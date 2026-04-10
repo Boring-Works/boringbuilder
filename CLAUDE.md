@@ -14,7 +14,7 @@ BoringForge is an AI-powered full-stack application generation platform built on
 **Tech Stack:**
 - Frontend: React 19.2, TypeScript 5.9, Vite (rolldown-vite 7.x), TailwindCSS 4, React Router v7
 - Backend: Cloudflare Workers, Durable Objects, D1 (SQLite), Hono
-- AI/LLM: Workers AI free tier (Nemotron 3, Kimi K2.5, Qwen3, GLM 4.7, Granite 4, DeepSeek R1 Distill)
+- AI/LLM: Workers AI (Kimi K2.5, GPT-OSS-120B, QwQ-32B, Qwen2.5-Coder-32B, GLM 4.7 Flash, Gemma 4 26B)
 - ORM: Drizzle 0.45, Agents SDK 0.2, OpenAI SDK 5.23
 - WebSocket: PartySocket for real-time communication
 - Sandbox: Custom container service (4 vCPU, 12GB RAM)
@@ -80,7 +80,7 @@ BoringForge is an AI-powered full-stack application generation platform built on
 | DO | `Sandbox` | UserAppSandboxService |
 | DO | `DORateLimitStore` | DORateLimitStore |
 | DO | `UserSecretsStore` | UserSecretsStore |
-| Container | UserAppSandboxService | 4 vCPU / 12GB / 10GB disk |
+| Container | UserAppSandboxService | standard-4 (4 vCPU / 12GB / 10GB disk) |
 | Dispatch | `DISPATCHER` | `boringbuilder-apps` (WfP) |
 | Rate Limit | `API_RATE_LIMITER` | 10K/min |
 | Rate Limit | `AUTH_RATE_LIMITER` | 1K/min |
@@ -91,37 +91,43 @@ users, sessions, api_keys, apps, favorites, stars, app_likes, comment_likes, app
 
 ## AI Model Configuration
 
-Config at `worker/agents/inferutils/config.ts`. Two modes selected by `PLATFORM_MODEL_PROVIDERS` env var:
+Config at `worker/agents/inferutils/config.ts`. Two tiers selected by `PLATFORM_MODEL_PROVIDERS` env var:
 
-**Platform Config (active in production -- Workers AI free tier):**
+**Platform Config (active in production, `PLATFORM_MODEL_PROVIDERS=workers-ai`):**
 
-| Operation | Model | Reasoning | Max Tokens | Temp | Fallback |
-|-----------|-------|-----------|------------|------|----------|
-| blueprint | Nemotron 3 120B | high | 20000 | 1.0 | Kimi K2.5 |
-| projectSetup | Qwen3 30B | medium | 8000 | 1 | GLM 4.7 Flash |
-| phaseGeneration | Kimi K2.5 | medium | 8000 | 1 | Nemotron 3 120B |
-| phaseImplementation | Kimi K2.5 | low | 48000 | 0.6 | Qwen2.5 Coder 32B |
-| conversationalResponse | GLM 4.7 Flash | low | 4000 | 0.8 | Qwen3 30B |
-| deepDebugger | Nemotron 3 120B | high | 8000 | 0.2 | DeepSeek R1 Distill |
-| fileRegeneration | Qwen2.5 Coder 32B | low | 16000 | 0.0 | GLM 4.7 Flash |
-| agenticProjectBuilder | Kimi K2.5 | high | 48000 | 1 | GPT-OSS 120B |
-| realtimeCodeFixer | GLM 4.7 Flash | low | 32000 | 0.2 | Qwen3 30B |
-| templateSelection | GLM 4.7 Flash | -- | 2000 | 0.0 | Granite 4.0 Micro |
-| fastCodeFixer | GLM 4.7 Flash | low | 64000 | 0.0 | Qwen2.5 Coder 32B |
-| screenshotAnalysis | Kimi K2.5 | medium | 8000 | 0.2 | GLM 4.7 Flash |
+6-model maximum-quality tier (April 2026):
 
-**Default Config (no env var):** Mirrors platform config -- all Workers AI models. Safe fallback if PLATFORM_MODEL_PROVIDERS is unset.
+| Operation | Model | Handle | Reasoning | Max Tokens | Temp | Fallback |
+|-----------|-------|--------|-----------|------------|------|----------|
+| templateSelection | QwQ-32B | `@cf/qwen/qwq-32b` | (native) | 2000 | 0.15 | GPT-OSS-120B |
+| blueprint | Kimi K2.5 | `@cf/moonshotai/kimi-k2.5` | high | 32000 | 0.7 | GPT-OSS-120B |
+| projectSetup | GPT-OSS-120B | `@cf/openai/gpt-oss-120b` | medium | 16000 | 0.6 | Kimi K2.5 |
+| phaseGeneration | GPT-OSS-120B | `@cf/openai/gpt-oss-120b` | high | 8000 | 0.7 | Kimi K2.5 |
+| firstPhaseImpl | Kimi K2.5 | `@cf/moonshotai/kimi-k2.5` | medium | 64000 | 0.6 | Qwen2.5-Coder-32B |
+| phaseImpl | Kimi K2.5 | `@cf/moonshotai/kimi-k2.5` | low | 64000 | 0.5 | Qwen2.5-Coder-32B |
+| fileRegeneration | Qwen2.5-Coder-32B | `@cf/qwen/qwen2.5-coder-32b-instruct` | -- | 32000 | 0.1 | GLM 4.7 Flash |
+| screenshotAnalysis | Gemma 4 26B | `@cf/google/gemma-4-26b-a4b-it` | medium | 8000 | 0.3 | Kimi K2.5 |
+| realtimeCodeFixer | QwQ-32B | `@cf/qwen/qwq-32b` | (native) | 16000 | 0.25 | GLM 4.7 Flash |
+| fastCodeFixer | GLM 4.7 Flash | `@cf/zai-org/glm-4.7-flash` | low | 64000 | 0.0 | Qwen3-30B |
+| conversational | Kimi K2.5 | `@cf/moonshotai/kimi-k2.5` | low | 4000 | 0.8 | GLM 4.7 Flash |
+| deepDebugger | GPT-OSS-120B | `@cf/openai/gpt-oss-120b` | high | 16000 | 0.3 | Kimi K2.5 |
+| agenticBuilder | Kimi K2.5 | `@cf/moonshotai/kimi-k2.5` | high | 48000 | 0.7 | GPT-OSS-120B |
 
-**Known Issue:** Workers AI builds may stall. See DEBT.md D9. Some models may not fully support the OpenAI /compat format through AI Gateway. If builds hang, check AI Gateway logs.
+**Default Config (no env var):** Budget tier using Qwen3-30B as backbone, Granite 4.0 Micro for template selection, Gemma 4 26B for vision. All Workers AI, no API keys needed.
+
+**Model API Notes (Critical):**
+- **QwQ-32B**: Different inference backend. No `reasoning_effort` param. Uses `guided_json` not `response_format`. Default temp 0.15. Has `nonReasoning: true` flag in config.types.ts.
+- **Kimi K2.5, GPT-OSS-120B, DeepSeek R1 Distill**: Full OpenAI-compatible API with `response_format`, `tools`, `reasoning_effort`, `max_completion_tokens`.
+- **Structured output whitelist** (core.ts lines 630-636): Only Kimi K2.5, GPT-OSS-120B, DeepSeek R1 Distill get `response_format`. All others use markdown format instructions via `schemaFormatters.ts`.
 
 Provider: `workers-ai` (no external API keys needed, runs on CF GPUs)
 
 ## Workers AI Routing (Critical)
-- Workers AI models MUST use /compat gateway endpoint, NOT provider-specific endpoint
+- Workers AI models use /compat gateway endpoint via AI Gateway
 - Model IDs keep full prefix: `workers-ai/@cf/moonshotai/kimi-k2.5` (no stripping)
-- Workers AI does NOT support: zodResponseFormat (structured output), max_completion_tokens, reasoning_effort
-- Workers AI uses: max_tokens, temperature, standard OpenAI chat completions format
-- All cheap retry fallbacks use WAI_GLM_47_FLASH (never Gemini -- no API key)
+- Session affinity header (`x-session-affinity`) set automatically in core.ts for prompt caching (Kimi K2.5: $0.60/M input drops to $0.10/M cached)
+- Inference fallback: On InferError with partial response >1000 chars, retries with GLM 4.7 Flash; on other errors, uses fallbackModel from config; exponential backoff (500ms * 2^attempt, max 10s, retryLimit: 5)
+- All cheap retry fallbacks use WAI_GLM_47_FLASH (never Gemini; no API key)
 
 ## Core Architecture
 
