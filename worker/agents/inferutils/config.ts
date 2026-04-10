@@ -240,4 +240,24 @@ export const AGENT_CONSTRAINTS: Map<AgentActionKey, AgentConstraintConfig> = new
 		allowedModels: new Set(AllModels),
 		enabled: true,
 	}],
+	['blueprint', {
+		allowedModels: new Set(AllModels),
+		enabled: true,
+	}],
+	['phaseImplementation', {
+		allowedModels: new Set(AllModels),
+		enabled: true,
+	}],
+	['firstPhaseImplementation', {
+		allowedModels: new Set(AllModels),
+		enabled: true,
+	}],
+	['deepDebugger', {
+		allowedModels: new Set(AllModels),
+		enabled: true,
+	}],
+	['agenticProjectBuilder', {
+		allowedModels: new Set(AllModels),
+		enabled: true,
+	}],
 ]);

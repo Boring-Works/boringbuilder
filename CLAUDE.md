@@ -265,10 +265,14 @@ Edit `worker/agents/operations/UserConversationProcessor.ts`
 - **Fix:** `getOperationOptions()` in `phasic.ts` uses a `stateRef` pattern: if `behaviorType !== 'phasic'`, create a corrected copy and pass it directly to `GenerationContext.from()`, bypassing the persisted state entirely. The `setState(corrected)` is best-effort only.
 - Do NOT add shape-based narrowing (`'generatedPhases' in state`) in `GenerationContext.ts` — it causes TypeScript `never` errors due to discriminated union literal types.
 
-**initializeAsync fire-and-forget race (not yet fixed, C4 priority):**
+**initializeAsync fire-and-forget race (mitigated, C4):**
 - `PhasicCodingBehavior.initialize()` fires `initializeAsync()` without await
 - State machine can start before async init completes
-- Mitigation: the `stateRef` fix above handles the most visible symptom
+- Mitigation: the `stateRef` fix above handles the most visible symptom; `.catch` ensures errors broadcast via `broadcastError`
+
+**AGENT_CONSTRAINTS coverage (fixed in audit 2026-04):**
+- All 13 `AgentActionKey` operations now have entries in `AGENT_CONSTRAINTS` (previously 5 were missing: `blueprint`, `phaseImplementation`, `firstPhaseImplementation`, `deepDebugger`, `agenticProjectBuilder`)
+- All set to `allowedModels: AllModels, enabled: true` (no filtering, just ensures they appear in the model config UI)
 
 ## File Size Hotspots
 
