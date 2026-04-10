@@ -527,7 +527,7 @@ const MODELS_MASTER = {
         }
     },
     WAI_DEEPSEEK_R1_DISTILL: {
-        id: 'workers-ai/@cf/deepseek/deepseek-r1-distill-qwen-32b',
+        id: 'workers-ai/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
         config: {
             name: 'DeepSeek R1 Distill',
             size: ModelSize.REGULAR,

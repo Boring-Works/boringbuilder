@@ -15,7 +15,7 @@ import { env } from 'cloudflare:workers';
 const PLATFORM_AGENT_CONFIG: AgentConfig = {
     templateSelection: {
         name: AIModels.WAI_QWQ_32B,
-        reasoning_effort: 'medium',
+        // QwQ-32B does not support reasoning_effort (different inference backend)
         max_tokens: 2000,
         temperature: 0.15,
         fallbackModel: AIModels.WAI_GPT_OSS_120B,
@@ -70,9 +70,9 @@ const PLATFORM_AGENT_CONFIG: AgentConfig = {
     },
     realtimeCodeFixer: {
         name: AIModels.WAI_QWQ_32B,
-        reasoning_effort: 'low',
+        // QwQ-32B does not support reasoning_effort; temp bumped to 0.25 for fix flexibility
         max_tokens: 16000,
-        temperature: 0.2,
+        temperature: 0.25,
         fallbackModel: AIModels.WAI_GLM_47_FLASH,
     },
     fastCodeFixer: {

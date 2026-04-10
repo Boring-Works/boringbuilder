@@ -175,6 +175,16 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
     }
 
     getOperationOptions(): OperationOptions<PhasicGenerationContext> {
+        // Defensive guard: if we're in a PhasicCodingBehavior instance but behaviorType
+        // drifted (possible race between initializeAsync and state machine), force-correct it
+        if (this.state.behaviorType !== 'phasic') {
+            this.logger.warn(`behaviorType was '${this.state.behaviorType}' in PhasicCodingBehavior, force-correcting to 'phasic'`);
+            this.setState({
+                ...this.state,
+                behaviorType: 'phasic' as const,
+            });
+        }
+
         const context = GenerationContext.from(this.state, this.getTemplateDetails(), this.logger);
         if (!GenerationContext.isPhasic(context)) {
             throw new Error('Expected PhasicGenerationContext');
@@ -284,13 +294,9 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
 
             this.logger.info("State machine completed successfully");
         } catch (error) {
+            // Aligned with upstream: do not reset state in catch to avoid state corruption.
+            // The WebSocket handler's .finally() block handles cleanup.
             this.logger.error("Error in state machine:", error);
-            this.setState({
-                ...this.state,
-                currentDevState: CurrentDevState.IDLE,
-                shouldBeGenerating: false,
-            });
-            this.broadcastError("Code generation failed", error);
         }
     }
 
