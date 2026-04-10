@@ -504,6 +504,7 @@ const MODELS_MASTER = {
             provider: 'workers-ai',
             creditCost: 0,
             contextSize: 32768,
+            nonReasoning: true, // QwQ-32B uses different inference backend; no reasoning_effort param
         }
     },
     WAI_GLM_47_FLASH: {
@@ -517,7 +518,7 @@ const MODELS_MASTER = {
         }
     },
     WAI_GRANITE_4_MICRO: {
-        id: 'workers-ai/@cf/ibm/granite-4.0-h-micro',
+        id: 'workers-ai/@cf/ibm-granite/granite-4.0-h-micro',
         config: {
             name: 'Granite 4.0 Micro',
             size: ModelSize.LITE,

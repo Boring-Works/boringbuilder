@@ -92,8 +92,9 @@ Analyze the request carefully and classify accordingly.`;
         const { object: prediction } = await executeInference({
             env,
             messages,
-            agentActionName: "templateSelection", // Reuse existing agent action
+            agentActionName: "templateSelection",
             schema: ProjectTypePredictionSchema,
+            format: 'markdown', // Injects structured output guidance for models without response_format support
             context: inferenceContext,
             maxTokens: 500,
         });
