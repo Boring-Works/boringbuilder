@@ -256,6 +256,20 @@ Edit `worker/agents/operations/UserConversationProcessor.ts`
 - Utilities/Hooks: kebab-case.ts
 - Backend Services: PascalCase.ts
 
+## Known Design Flaws (Do Not Reintroduce)
+
+**PhasicGenerationContext race condition (fixed in commit 7db0bd5):**
+- `initialState.behaviorType` defaults to `'unknown'` (codingAgent.ts ~line 66)
+- `PhasicCodingBehavior.initialize()` calls `setState({ behaviorType: 'phasic' })` but `AgentComponent.setState()` (lines 47-56) swallows errors in a try-catch
+- If setState fails silently, state retains `'unknown'`; `GenerationContext.from()` then creates an `AgenticGenerationContext` instead of `PhasicGenerationContext`; `isPhasic()` guard throws "Expected PhasicGenerationContext"
+- **Fix:** `getOperationOptions()` in `phasic.ts` uses a `stateRef` pattern: if `behaviorType !== 'phasic'`, create a corrected copy and pass it directly to `GenerationContext.from()`, bypassing the persisted state entirely. The `setState(corrected)` is best-effort only.
+- Do NOT add shape-based narrowing (`'generatedPhases' in state`) in `GenerationContext.ts` — it causes TypeScript `never` errors due to discriminated union literal types.
+
+**initializeAsync fire-and-forget race (not yet fixed, C4 priority):**
+- `PhasicCodingBehavior.initialize()` fires `initializeAsync()` without await
+- State machine can start before async init completes
+- Mitigation: the `stateRef` fix above handles the most visible symptom
+
 ## File Size Hotspots
 
 | File | Lines | Note |
