@@ -175,17 +175,19 @@ export class PhasicCodingBehavior extends BaseCodingBehavior<PhasicState> implem
     }
 
     getOperationOptions(): OperationOptions<PhasicGenerationContext> {
-        // Defensive guard: if we're in a PhasicCodingBehavior instance but behaviorType
-        // drifted (possible race between initializeAsync and state machine), force-correct it
-        if (this.state.behaviorType !== 'phasic') {
-            this.logger.warn(`behaviorType was '${this.state.behaviorType}' in PhasicCodingBehavior, force-correcting to 'phasic'`);
-            this.setState({
-                ...this.state,
-                behaviorType: 'phasic' as const,
-            });
+        // Build a guaranteed-phasic state reference. If behaviorType drifted (race between
+        // initializeAsync and state machine start), create a corrected copy and persist it.
+        // We pass the corrected ref directly to GenerationContext.from() so setState failure
+        // (which is swallowed by AgentComponent) cannot cause the context creation to fail.
+        let stateRef = this.state;
+        if (stateRef.behaviorType !== 'phasic') {
+            this.logger.warn(`behaviorType was '${stateRef.behaviorType}' in PhasicCodingBehavior, force-correcting to 'phasic'`);
+            const corrected = { ...stateRef, behaviorType: 'phasic' as const };
+            this.setState(corrected);
+            stateRef = corrected;
         }
 
-        const context = GenerationContext.from(this.state, this.getTemplateDetails(), this.logger);
+        const context = GenerationContext.from(stateRef, this.getTemplateDetails(), this.logger);
         if (!GenerationContext.isPhasic(context)) {
             throw new Error('Expected PhasicGenerationContext');
         }
