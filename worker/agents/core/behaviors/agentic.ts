@@ -100,7 +100,7 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
         
         if (templateInfo && templateInfo.templateDetails.name !== 'scratch') {
             await this.saveTemplateFilesToVFS(templateInfo.templateDetails, projectName);
-            this.deployToSandbox();
+            this.deployToSandbox().catch(err => this.logger.error('Initial deploy failed:', err));
         }
         this.logger.info(`Agent ${this.getAgentId()} session: ${this.state.sessionId} initialized successfully`);
         return this.state;
@@ -213,6 +213,11 @@ export class AgenticCodingBehavior extends BaseCodingBehavior<AgenticState> impl
     }
 
     getOperationOptions(): OperationOptions<AgenticGenerationContext> {
+        // Defensive guard: force-correct behaviorType if it drifted (same pattern as phasic.ts)
+        if (this.state.behaviorType !== 'agentic') {
+            this.logger.warn(`behaviorType drifted to '${this.state.behaviorType}', correcting to 'agentic'`);
+            this.setState({ ...this.state, behaviorType: 'agentic' });
+        }
         const context = GenerationContext.from(this.state, this.getTemplateDetails(), this.logger);
         if (!GenerationContext.isAgentic(context)) {
             throw new Error('Expected AgenticGenerationContext');

@@ -626,8 +626,15 @@ export async function infer<OutputSchema extends z.AnyZodObject>({
 
         const client = new OpenAI({ apiKey, baseURL: baseURL, defaultHeaders: { ...defaultHeaders, ...sessionHeaders } });
 
-        // Providers that don't support OpenAI's structured output (zodResponseFormat)
-        const supportsStructuredOutput = !['deepseek', 'grok', 'workers-ai'].includes(modelConfig.provider);
+        // Workers AI models with OpenAI-compatible structured output support
+        const workersAiStructuredOutputModels = [
+            '@cf/moonshotai/kimi-k2.5',
+            '@cf/openai/gpt-oss-120b',
+            '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
+        ];
+        const supportsStructuredOutput = modelConfig.provider === 'workers-ai'
+            ? workersAiStructuredOutputModels.some(m => modelName.includes(m))
+            : !['deepseek', 'grok'].includes(modelConfig.provider);
         const schemaObj =
             schema && schemaName && !format && supportsStructuredOutput
                 ? { response_format: zodResponseFormat(schema, schemaName) }

@@ -2005,6 +2005,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
                 'low'
             );
 
+            const { AGENT_CONFIG } = await import('../../inferutils/config');
+            const screenshotModel = AGENT_CONFIG.screenshotAnalysis.name;
+
             const result = await infer({
                 env: this.env,
                 metadata: this.state.metadata,
@@ -2012,9 +2015,9 @@ export abstract class BaseCodingBehavior<TState extends BaseProjectState>
                 schema: ScreenshotAnalysisSchema,
                 schemaName: 'screenshotAnalysis',
                 actionKey: 'screenshotAnalysis',
-                modelName: 'screenshotAnalysis',
-                maxTokens: 4000,
-                temperature: 0.2,
+                modelName: screenshotModel,
+                maxTokens: AGENT_CONFIG.screenshotAnalysis.max_tokens ?? 4000,
+                temperature: AGENT_CONFIG.screenshotAnalysis.temperature ?? 0.2,
             });
 
             if (result && 'object' in result && result.object) {

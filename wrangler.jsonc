@@ -62,11 +62,7 @@
             // Altering max_instances value will have no effect. Please use the MAX_SANDBOX_INSTANCES var instead.
 			"max_instances": 10,
             // ATTENTION: Altering instance_type value will have no effect. Please use the SANDBOX_INSTANCE_TYPE var instead.
-            "instance_type": {
-                "vcpu": 4,
-                "memory_mib": 12288,
-                "disk_mb": 10240
-            },
+            "instance_type": "standard-4",
             "rollout_step_percentage": 100
 		}
 	],
@@ -139,14 +135,21 @@
         }
 	],
 	"routes": [
-		{ "pattern": "*.getboring.io/*", "zone_id": "46f4e6ccfe6d3508405011318d8c8126" }
-	],
+        {
+            "pattern": "build.getboring.io",
+            "custom_domain": true
+        },
+        {
+            "pattern": "*getboring.io/*",
+            "custom_domain": false,
+            "zone_id": "46f4e6ccfe6d3508405011318d8c8126"
+        }
+    ],
 	"vars": {
         "TEMPLATES_REPOSITORY": "https://github.com/Boring-Works/vibesdk-templates",
         "ALLOWED_EMAILS": "codyboring@me.com,barbstreet@jastreet.com,stevenhobbs76@yahoo.com",
         "DISPATCH_NAMESPACE": "boringbuilder-apps",
         "ENABLE_READ_REPLICAS": "false",
-        "CLOUDFLARE_AI_GATEWAY": "boringbuilder_gateway",
         "PLATFORM_MODEL_PROVIDERS": "workers-ai",
         "PLATFORM_CAPABILITIES": {
             "features": {
@@ -166,7 +169,8 @@
         "CUSTOM_PREVIEW_DOMAIN": "getboring.io",
         "MAX_SANDBOX_INSTANCES": "10",
         "SANDBOX_INSTANCE_TYPE": "standard-4",
-        "WORKERS_DEV_HOSTNAME": "boringbuilder.codyboring.workers.dev"
+        "WORKERS_DEV_HOSTNAME": "boringbuilder.codyboring.workers.dev",
+        "CLOUDFLARE_AI_GATEWAY": "boringbuilder_gateway"
     },
 	"workers_dev": true,
 	"preview_urls": true
